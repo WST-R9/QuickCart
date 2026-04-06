@@ -15,21 +15,21 @@
 
       <li class="nav-item">
         <a class="nav-link <?= ($page == 'customers.php') ? '' : "collapsed" ?> " href="customers">
-          <i class="bi bi-person"></i>
+          <i class="bi bi-person-circle"></i>
           <span>Customers</span>
         </a>
       </li><!-- End Customers Page Nav -->
 
       <li class="nav-item">
         <a class="nav-link <?= ($page == 'inventory.php') ? '' : "collapsed" ?> " href="inventory">
-          <i class="bi bi-question-circle"></i>
+          <i class="bi bi-boxes"></i>
           <span>Inventory</span>
         </a>
       </li><!-- End Inventory Page Nav -->
 
       <li class="nav-item">
         <a class="nav-link <?= ($page == 'sales.php') ? '' : "collapsed" ?> " href="sales">
-          <i class="bi bi-envelope"></i>
+          <i class="bi bi-graph-up-arrow"></i>
           <span>Sales</span>
         </a>
       </li><!-- End Sales Page Nav -->
@@ -38,7 +38,7 @@
 
       <li class="nav-item">
         <a class="nav-link <?= ($page == 'accounts.php') ? '' : "collapsed" ?> " href="accounts">
-          <i class="bi bi-card-list"></i>
+          <i class="bi bi-person-gear"></i>
           <span>Accounts</span>
         </a>
       </li><!-- End Accounts Page Nav -->
@@ -47,7 +47,7 @@
 
       <li class="nav-item">
         <a class="nav-link <?= ($page == 'reports.php') ? '' : "collapsed" ?> " href="reports">
-          <i class="bi bi-box-arrow-in-right"></i>
+          <i class="bi bi-table"></i>
           <span>Reports</span>
         </a>
       </li><!-- End Reports Page Nav -->

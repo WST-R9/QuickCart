@@ -7,12 +7,12 @@ if (!isset($_SESSION['authUser'])) {
     $_SESSION['code'] = "warning";
     header("Location: /WST-QuickCart/public/login");
     exit();
-} else {
-    if ($_SESSION['userRole'] !== 'admin') {
-        $_SESSION['message'] = "You do not have permission to access this page.";
-        $_SESSION['code'] = "error";
-        header("Location: /WST-QuickCart/public/login");
-        exit();
-    }
+}
+
+if ($_SESSION['userRole'] !== 'customer') {
+    $_SESSION['message'] = "You do not have permission to access this page.";
+    $_SESSION['code'] = "error";
+    header("Location: /WST-QuickCart/public/admin/index");
+    exit();
 }
 ?>

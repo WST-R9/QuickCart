@@ -8,7 +8,7 @@ if (isset($_POST['logoutButton'])) {
     unset($_SESSION['userRole']);
     unset($_SESSION['authUser']);
     session_destroy();
+
     header("Location: /WST-QuickCart/public/login");
     exit(0);
-
 }
