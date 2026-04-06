@@ -1,9 +1,9 @@
 <?php
+include('../app/middleware/admin.php');
 include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
-?>
-
+?>  
 <div class="pagetitle">
     <h1>Customers</h1>
     <nav>
