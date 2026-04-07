@@ -99,7 +99,6 @@ if (isset($_POST['registerButton'])) {
     $role = 'customer';
     $uuid = generate_uuid();
 
-    // Validations
     // Required fields
     if (
         !$firstName || !$lastName || !$birthday || !$gender ||

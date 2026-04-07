@@ -14,7 +14,7 @@
 
   <!-- Custom CSS -->
   <link href="assets/css/style.css" rel="stylesheet">
-  
+
 </head>
 
 <body>
@@ -27,14 +27,9 @@
         <div class="col-lg-6 mb-5 mb-lg-0 d-flex flex-column justify-content-center align-items-center text-center"
           style="z-index: 10;">
 
-          <h1 class="fw-bold" style="color: hsl(0, 0%, 100%); font-size: 80px; line-height: 1;">
-            QuickCart
-          </h1>
-          <h2 style="color: hsl(191, 41%, 95%); font-size: 28px; font-weight: 400;">
-            All Your Shopping Needs in One Cart
-          </h2>
-
-          <img src="assets/img/QC-Icon.png" alt="QuickCart Logo" class="img-fluid mt-4" style="max-width: 410px;">
+          <h1 class="fw-bold quickcart-title">QuickCart</h1>
+          <h2 class="quickcart-subtitle">All Your Shopping Needs in One Cart</h2>
+          <img src="assets/img/QC-Icon.png" alt="QuickCart Logo" class="img-fluid mt-4 quickcart-logo">
 
         </div>
 
@@ -88,33 +83,9 @@
   <!-- Bootstrap JS -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <?php
-  if (isset($_SESSION['message']) && isset($_SESSION['code']) && $_SESSION['code'] != '') {
-    ?>
-    <script>
-      const Toast = Swal.mixin({
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-          toast.onmouseenter = Swal.stopTimer;
-          toast.onmouseleave = Swal.resumeTimer;
-        }
-      });
-      Toast.fire({
-        icon: "<?php echo $_SESSION['code']; ?>",
-        title: "<?php echo $_SESSION['message']; ?>"
-      });
-    </script>
-    <?php
-    unset($_SESSION['message']);
-    unset($_SESSION['code']);
-  }
+  <?php include_once(__DIR__ . '/../app/helpers/flashMessage.php'); 
+  flashMessage();
   ?>
-
 </body>
 
 </html>

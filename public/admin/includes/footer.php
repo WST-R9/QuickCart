@@ -30,30 +30,8 @@
   <!-- Template Main JS File -->
   <script src="assets/js/main.js"></script>
 
-    <?php
-  if (isset($_SESSION['message']) && isset($_SESSION['code']) && $_SESSION['code'] != '') {
-  ?>
-    <script>
-      const Toast = Swal.mixin({
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-          toast.onmouseenter = Swal.stopTimer;
-          toast.onmouseleave = Swal.resumeTimer;
-        }
-      });
-      Toast.fire({
-        icon: "<?php echo $_SESSION['code']; ?>",
-        title: "<?php echo $_SESSION['message']; ?>"
-      });
-    </script>
-  <?php
-    unset($_SESSION['message']);
-    unset($_SESSION['code']);
-  }
+  <?php include_once(__DIR__ . '/../../../app/helpers/flashMessage.php');
+  flashMessage();
   ?>
 
 </body>

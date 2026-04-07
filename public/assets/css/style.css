@@ -77,3 +77,23 @@ body.login-page {
 .auth-link:hover {
   color: #04bf47;
 }
+
+/* title sizing */
+.quickcart-title {
+  color: hsl(0, 0%, 100%);
+  font-size: 80px;
+  line-height: 1;
+}
+
+.quickcart-subtitle {
+  color: hsl(191, 41%, 95%);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+/* image sizing */
+.quickcart-logo {
+  max-width: 410px;
+  width: 100%;
+  height: auto;
+}

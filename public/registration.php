@@ -8,7 +8,7 @@
   <title>Registration Page</title>
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  
+
   <!-- Custom CSS -->
   <link href="assets/css/style.css" rel="stylesheet">
 </head>
@@ -20,10 +20,11 @@
       <div class="row gx-lg-5 align-items-center">
 
         <!-- LEFT TEXT -->
-        <div class="col-lg-6 mb-5 mb-lg-0 d-flex flex-column justify-content-center align-items-center text-center" style="z-index: 10;">
-          <h1 class="fw-bold" style="color: hsl(0, 0%, 100%); font-size: 80px; line-height: 1;">QuickCart</h1>
-          <h2 style="color: hsl(191, 41%, 95%); font-size: 28px; font-weight: 400;">All Your Shopping Needs in One Cart</h2>
-          <img src="assets/img/QC-Icon.png" alt="QuickCart Logo" class="img-fluid mt-4" style="max-width: 410px;">
+        <div class="col-lg-6 mb-5 mb-lg-0 d-flex flex-column justify-content-center align-items-center text-center"
+          style="z-index: 10;">
+          <h1 class="fw-bold quickcart-title">QuickCart</h1>
+          <h2 class="quickcart-subtitle">All Your Shopping Needs in One Cart</h2>
+          <img src="assets/img/QC-Icon.png" alt="QuickCart Logo" class="img-fluid mt-4 quickcart-logo">
         </div>
 
         <!-- RIGHT SIDE FORM -->
@@ -42,7 +43,8 @@
               </div>
 
               <!-- FORM -->
-              <form id="registrationForm" action="/WST-QuickCart/app/controllers/loginController.php" method="POST" enctype="multipart/form-data" autocomplete="off">
+              <form id="registrationForm" action="/WST-QuickCart/app/controllers/loginController.php" method="POST"
+                enctype="multipart/form-data" autocomplete="off">
 
                 <!-- STEP 1: Personal Info -->
                 <div class="form-step form-step-active">
@@ -86,12 +88,14 @@
                 <div class="form-step">
                   <div class="mb-3">
                     <label class="form-label">Email Address <span style="color:red;">*</span></label>
-                    <input type="email" name="emailAddress" id="emailAddress" class="form-control" placeholder="example@email.com">
+                    <input type="email" name="emailAddress" id="emailAddress" class="form-control"
+                      placeholder="example@email.com">
                   </div>
 
                   <div class="mb-3">
                     <label class="form-label">Phone Number <span style="color:red;">*</span></label>
-                    <input type="text" name="phoneNumber" id="phoneNumber" class="form-control" placeholder="09XXXXXXXXX" maxlength="15">
+                    <input type="text" name="phoneNumber" id="phoneNumber" class="form-control"
+                      placeholder="09XXXXXXXXX" maxlength="15">
                     <div class="form-text text-muted">10–15 digits only, e.g. 09171234567</div>
                   </div>
                   <div class="mb-3">
@@ -174,26 +178,26 @@
     });
 
     // Multi-step logic
-    const formSteps     = document.querySelectorAll('.form-step');
+    const formSteps = document.querySelectorAll('.form-step');
     const progressSteps = document.querySelectorAll('.progress-step');
     let currentStep = 0;
 
     function updateFormSteps() {
-      formSteps.forEach((step, i)    => step.classList.toggle('form-step-active', i === currentStep));
+      formSteps.forEach((step, i) => step.classList.toggle('form-step-active', i === currentStep));
       progressSteps.forEach((bar, i) => bar.classList.toggle('active', i <= currentStep));
     }
 
     // Step 1 validation
     document.getElementById('nextBtn1').addEventListener('click', () => {
       const firstName = document.getElementById('firstName').value.trim();
-      const lastName  = document.getElementById('lastName').value.trim();
-      const birthday  = document.getElementById('birthday').value.trim();
-      const gender    = document.querySelector('input[name="gender"]:checked');
+      const lastName = document.getElementById('lastName').value.trim();
+      const birthday = document.getElementById('birthday').value.trim();
+      const gender = document.querySelector('input[name="gender"]:checked');
 
       if (!firstName) return Toast.fire({ icon: 'warning', title: 'First name is required.' });
-      if (!lastName)  return Toast.fire({ icon: 'warning', title: 'Last name is required.' });
-      if (!birthday)  return Toast.fire({ icon: 'warning', title: 'Birthday is required.' });
-      if (!gender)    return Toast.fire({ icon: 'warning', title: 'Please select a gender.' });
+      if (!lastName) return Toast.fire({ icon: 'warning', title: 'Last name is required.' });
+      if (!birthday) return Toast.fire({ icon: 'warning', title: 'Birthday is required.' });
+      if (!gender) return Toast.fire({ icon: 'warning', title: 'Please select a gender.' });
 
       currentStep = 1;
       updateFormSteps();
@@ -201,19 +205,19 @@
 
     // Step 2 validation
     document.getElementById('nextBtn2').addEventListener('click', () => {
-      const email  = document.getElementById('emailAddress').value.trim();
-      const phone  = document.getElementById('phoneNumber').value.trim();
+      const email = document.getElementById('emailAddress').value.trim();
+      const phone = document.getElementById('phoneNumber').value.trim();
       const street = document.getElementById('street').value.trim();
-      const brgy   = document.getElementById('barangay').value.trim();
-      const city   = document.getElementById('city').value.trim();
+      const brgy = document.getElementById('barangay').value.trim();
+      const city = document.getElementById('city').value.trim();
 
-      if (!email)                                     return Toast.fire({ icon: 'warning', title: 'Email address is required.' });
+      if (!email) return Toast.fire({ icon: 'warning', title: 'Email address is required.' });
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Toast.fire({ icon: 'warning', title: 'Please enter a valid email address.' });
-      if (!phone)                                     return Toast.fire({ icon: 'warning', title: 'Phone number is required.' });
-      if (!/^\d{10,15}$/.test(phone))                 return Toast.fire({ icon: 'warning', title: 'Phone number must be 10-15 digits only.' });
-      if (!street)                                    return Toast.fire({ icon: 'warning', title: 'Street is required.' });
-      if (!brgy)                                      return Toast.fire({ icon: 'warning', title: 'Barangay is required.' });
-      if (!city)                                      return Toast.fire({ icon: 'warning', title: 'City is required.' });
+      if (!phone) return Toast.fire({ icon: 'warning', title: 'Phone number is required.' });
+      if (!/^\d{10,15}$/.test(phone)) return Toast.fire({ icon: 'warning', title: 'Phone number must be 10-15 digits only.' });
+      if (!street) return Toast.fire({ icon: 'warning', title: 'Street is required.' });
+      if (!brgy) return Toast.fire({ icon: 'warning', title: 'Barangay is required.' });
+      if (!city) return Toast.fire({ icon: 'warning', title: 'City is required.' });
 
       currentStep = 2;
       updateFormSteps();
@@ -221,10 +225,10 @@
 
     // Step 3 validation on submit
     document.getElementById('registrationForm').addEventListener('submit', (e) => {
-      const username        = document.getElementById('username').value.trim();
-      const password        = document.getElementById('password').value;
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
-      const terms           = document.getElementById('acceptTerms').checked;
+      const terms = document.getElementById('acceptTerms').checked;
 
       if (!username || !password) {
         e.preventDefault();
@@ -244,15 +248,11 @@
     document.getElementById('prevBtn2').addEventListener('click', () => { currentStep = 0; updateFormSteps(); });
     document.getElementById('prevBtn3').addEventListener('click', () => { currentStep = 1; updateFormSteps(); });
 
-    // PHP session flash message
-    <?php if (isset($_SESSION['message']) && !empty($_SESSION['code'])): ?>
-    Toast.fire({
-      icon: '<?php echo $_SESSION['code']; ?>',
-      title: '<?php echo addslashes($_SESSION['message']); ?>'
-    });
-    <?php unset($_SESSION['message'], $_SESSION['code']); ?>
-    <?php endif; ?>
-  </script>
+    <?php include_once(__DIR__ . '/../app/helpers/flashMessage.php');
+    flashMessage();
+    ?>
 
-</body>
-</html>
+  </script>
+</body >
+
+</html >
