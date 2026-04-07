@@ -1,5 +1,5 @@
 <?php
-include('../app/middleware/admin.php');
+include_once("../../app/middleware/admin.php");
 include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
