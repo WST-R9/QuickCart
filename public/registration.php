@@ -8,26 +8,9 @@
   <title>Registration Page</title>
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    .background-radial-gradient {
-      min-height: 100vh;
-      background: url("assets/img/QC-bkrd.png") no-repeat center center;
-      background-size: cover;
-    }
-    .bg-glass {
-      background-color: rgba(255, 255, 255, 0.9) !important;
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-    }
-    .btn-quickcart { background-color: #005d21; border-color: #005d21; color: white; }
-    .btn-quickcart:hover { background-color: #004a1a; border-color: #004a1a; color: white; }
-    html, body { min-height: 100%; margin: 0; }
-    .form-step { display: none; }
-    .form-step-active { display: block; }
-    .progress-container { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
-    .progress-step { flex: 1; height: 5px; background-color: #d3d3d3; border-radius: 5px; }
-    .progress-step.active { background-color: #005d21; }
-  </style>
+  
+  <!-- Custom CSS -->
+  <link href="assets/css/style.css" rel="stylesheet">
 </head>
 
 <body>
@@ -162,7 +145,7 @@
               </form>
 
               <div class="text-center mt-3">
-                <p class="mb-0">Already have an account? <a href="login">Log in</a></p>
+                <p class="mb-0">Already have an account? <a href="login" class="auth-link">Log in</a></p>
               </div>
 
             </div>

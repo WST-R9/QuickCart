@@ -12,37 +12,9 @@
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 
-  <style>
-    .background-radial-gradient {
-      min-height: 100vh;
-      background: url("assets/img/QC-bkrd.png") no-repeat center center;
-      background-size: cover;
-    }
-
-    .bg-glass {
-      background-color: rgba(255, 255, 255, 0.9) !important;
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-    }
-
-    .btn-quickcart {
-      background-color: #005d21;
-      border-color: #005d21;
-      color: white;
-    }
-
-    .btn-quickcart:hover {
-      background-color: #004a1a;
-      border-color: #004a1a;
-      color: white;
-    }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-    }
-  </style>
+  <!-- Custom CSS -->
+  <link href="assets/css/style.css" rel="stylesheet">
+  
 </head>
 
 <body>
@@ -77,7 +49,8 @@
               <h4 class="text-center mt-2 mb-2 fw-bold">Welcome back!</h4>
               <h5 class="text-center mb-3 text-muted">Please login to your account.</h5>
 
-              <form action="/WST-QuickCart/app/controllers/loginController.php" method="POST" enctype="multipart/form-data" autocomplete="off">
+              <form action="/WST-QuickCart/app/controllers/loginController.php" method="POST"
+                enctype="multipart/form-data" autocomplete="off">
 
                 <!-- Username -->
                 <div class="mb-3">
@@ -98,7 +71,7 @@
 
                 <div class="text-center">
                   <p class="mb-0">Don't have an account?
-                    <a href="registration">Create an account</a>
+                    <a href="registration" class="auth-link">Create an account</a>
                   </p>
                 </div>
 
@@ -118,7 +91,7 @@
 
   <?php
   if (isset($_SESSION['message']) && isset($_SESSION['code']) && $_SESSION['code'] != '') {
-  ?>
+    ?>
     <script>
       const Toast = Swal.mixin({
         toast: true,
@@ -136,7 +109,7 @@
         title: "<?php echo $_SESSION['message']; ?>"
       });
     </script>
-  <?php
+    <?php
     unset($_SESSION['message']);
     unset($_SESSION['code']);
   }
