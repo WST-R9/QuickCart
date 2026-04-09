@@ -86,32 +86,52 @@
 
                 <!-- STEP 2: Contact & Address -->
                 <div class="form-step">
-                  <div class="mb-3">
-                    <label class="form-label">Email Address <span style="color:red;">*</span></label>
-                    <input type="email" name="emailAddress" id="emailAddress" class="form-control"
-                      placeholder="example@email.com">
+
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Email Address <span style="color:red;">*</span></label>
+                      <input type="email" name="emailAddress" id="emailAddress" class="form-control"
+                        placeholder="example@email.com">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Phone Number <span style="color:red;">*</span></label>
+                      <input type="text" name="phoneNumber" id="phoneNumber" class="form-control"
+                        placeholder="09XXXXXXXXX" maxlength="15">
+                    </div>
                   </div>
 
-                  <div class="mb-3">
-                    <label class="form-label">Phone Number <span style="color:red;">*</span></label>
-                    <input type="text" name="phoneNumber" id="phoneNumber" class="form-control"
-                      placeholder="09XXXXXXXXX" maxlength="15">
-                    <div class="form-text text-muted">10–15 digits only, e.g. 09171234567</div>
-                  </div>
                   <div class="mb-3">
                     <label class="form-label">Street <span style="color:red;">*</span></label>
                     <input type="text" name="street" id="street" class="form-control" placeholder="Velez St.">
                   </div>
+
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <label class="form-label">Barangay <span style="color:red;">*</span></label>
                       <input type="text" name="barangay" id="barangay" class="form-control" placeholder="Baikingon">
                     </div>
+
                     <div class="col-md-6 mb-3">
                       <label class="form-label">City <span style="color:red;">*</span></label>
-                      <input type="text" name="city" id="city" class="form-control" placeholder="Quezon City">
+                      <input type="text" name="city" id="city" class="form-control" placeholder="Cagayan de Oro">
                     </div>
                   </div>
+
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Province <span style="color:red;">*</span></label>
+                      <input type="text" name="province" id="province" class="form-control"
+                        placeholder="Misamis Oriental">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Zip Code <span style="color:red;">*</span></label>
+                      <input type="text" name="zipCode" id="zipCode" class="form-control" placeholder="9000"
+                        maxlength="10">
+                    </div>
+                  </div>
+
                   <div class="d-flex justify-content-between mt-2">
                     <button type="button" class="btn btn-secondary" id="prevBtn2">Previous</button>
                     <button type="button" class="btn btn-quickcart" id="nextBtn2">Next</button>
@@ -210,6 +230,8 @@
       const street = document.getElementById('street').value.trim();
       const brgy = document.getElementById('barangay').value.trim();
       const city = document.getElementById('city').value.trim();
+      const province = document.getElementById('province').value.trim();
+      const zipCode = document.getElementById('zipCode').value.trim();
 
       if (!email) return Toast.fire({ icon: 'warning', title: 'Email address is required.' });
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return Toast.fire({ icon: 'warning', title: 'Please enter a valid email address.' });
@@ -218,6 +240,9 @@
       if (!street) return Toast.fire({ icon: 'warning', title: 'Street is required.' });
       if (!brgy) return Toast.fire({ icon: 'warning', title: 'Barangay is required.' });
       if (!city) return Toast.fire({ icon: 'warning', title: 'City is required.' });
+      if (!province) return Toast.fire({ icon: 'warning', title: 'Province is required.' });
+      if (!zipCode) return Toast.fire({ icon: 'warning', title: 'Zip Code is required.' });
+      if (!/^\d{4,10}$/.test(zipCode)) return Toast.fire({ icon: 'warning', title: 'Zip Code must be 4-10 digits only.' });
 
       currentStep = 2;
       updateFormSteps();
@@ -253,6 +278,6 @@
     ?>
 
   </script>
-</body >
+</body>
 
-</html >
+</html>
