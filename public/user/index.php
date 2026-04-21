@@ -18,9 +18,6 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             color: #333;
         }
 
-        
-       
-
         /* ── NAVBAR ── */
         nav {
             background-color: #fff;
@@ -37,12 +34,13 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         }
 
         .nav-brand {
-    color: #16a34a;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-decoration: none;
-    letter-spacing: 1px;
-}
+            color: #16a34a;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
         .nav-links {
             display: flex;
             align-items: center;
@@ -59,6 +57,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         }
 
         .nav-links a:hover { color: #16a34a; }
+        .nav-links a.active { color: #16a34a; font-weight: 700; }
 
         .nav-right {
             display: flex;
@@ -66,7 +65,6 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             gap: 1.2rem;
         }
 
-        /* ── SEARCH BAR ── */
         .search-wrapper {
             display: flex;
             align-items: center;
@@ -155,19 +153,95 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
 
         .btn-logout:hover { background: #16a34a; color: #fff; }
 
-        /* ── HERO ── */
-        .hero {
-            position: relative;
-            height: 320px;
+        /* ── PAGE LAYOUT ── */
+        .page-wrapper {
+            display: flex;
+            /* REMOVED: max-width: 1200px; */
+            margin: 1.5rem auto;
+            padding: 0 2rem;        /* slightly more horizontal breathing room */
+            gap: 2rem;              /* increased gap for wider sidebar */
+            align-items: flex-start;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 300px;           /* increased from 240px */
+            flex-shrink: 0;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             overflow: hidden;
+            position: sticky;
+            top: 80px;
+        }
+
+        .sidebar-title {
+            background: #14532d;
+            color: #fff;
+            padding: 1.1rem 1.4rem; /* slightly larger padding */
+            font-size: 1.05rem;     /* slightly larger text */
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .sidebar-list { list-style: none; }
+
+        .sidebar-list li a {
+            display: flex;
+            align-items: center;
+            gap: 14px;              /* increased from 12px */
+            padding: 0.9rem 1.4rem; /* increased from 0.75rem 1.2rem */
+            text-decoration: none;
+            color: #374151;
+            font-size: 0.92rem;     /* increased from 0.88rem */
+            font-weight: 500;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .sidebar-list li a:hover,
+        .sidebar-list li a.active {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .sidebar-list li a.active { border-left: 3px solid #16a34a; }
+        .sidebar-list li:last-child a { border-bottom: none; }
+
+        .cat-icon-sm {
+            width: 38px;            /* increased from 34px */
+            height: 38px;           /* increased from 34px */
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.2rem;      /* increased from 1.1rem */
+            flex-shrink: 0;
+        }
+
+        .badge-18 {
+            margin-left: auto;
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 0.65rem;     /* slightly larger */
+            font-weight: 700;
+            padding: 2px 8px;       /* slightly wider */
+            border-radius: 20px;
+        }
+
+        /* ── MAIN CONTENT ── */
+        .main-content { flex: 1; min-width: 0; }
+
+        /* ── HERO ── */
+        .hero {
+            position: relative;
+            height: 260px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
         }
 
         .hero img.hero-bg {
-            position: absolute;
-            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -178,28 +252,27 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             position: absolute;
             inset: 0;
             background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(20,83,45,0.78));
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
             padding: 2rem;
         }
 
-        .hero-content h1 {
-            font-size: 2rem;
+        .hero-overlay h1 {
+            font-size: 1.7rem;
             color: #fff;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.4rem;
             text-shadow: 0 2px 10px rgba(0,0,0,0.6);
         }
 
-        .hero-content h1 span { color: #4ade80; }
+        .hero-overlay h1 span { color: #4ade80; }
 
-        .hero-content p {
+        .hero-overlay p {
             color: #e5e7eb;
-            font-size: 0.95rem;
-            margin-bottom: 1.2rem;
+            font-size: 0.88rem;
+            margin-bottom: 1rem;
             text-shadow: 0 1px 4px rgba(0,0,0,0.5);
         }
 
@@ -207,35 +280,28 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             background: #16a34a;
             color: #fff;
             border: none;
-            padding: 12px 28px;
+            padding: 10px 24px;
             border-radius: 7px;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
             cursor: pointer;
             text-decoration: none;
+            letter-spacing: 0.5px;
             transition: background 0.2s;
         }
 
         .btn-shop:hover { background: #14532d; }
-
-        /* ── MAIN CONTAINER ── */
-        .container {
-            max-width: 1150px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
 
         /* ── SECTION HEADER ── */
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.2rem;
+            margin-bottom: 1rem;
         }
 
         .section-header h2 {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 700;
             color: #14532d;
             text-transform: uppercase;
@@ -243,7 +309,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         }
 
         .see-all {
-            font-size: 0.85rem;
+            font-size: 0.83rem;
             color: #16a34a;
             text-decoration: none;
             font-weight: 600;
@@ -254,8 +320,9 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         /* ── PRODUCT GRID ── */
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-            gap: 1.1rem;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .product-card {
@@ -263,7 +330,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             border-radius: 10px;
             border: 1px solid #e5e7eb;
             overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
             cursor: pointer;
         }
 
@@ -275,7 +342,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
 
         .product-img-placeholder {
             width: 100%;
-            height: 150px;
+            height: 140px;
             background: #f3f4f6;
             display: flex;
             align-items: center;
@@ -284,19 +351,19 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         }
 
         .product-img-placeholder svg {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             stroke: #d1d5db;
             fill: none;
             stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        .product-info {
-            padding: 0.75rem;
-        }
+        .product-info { padding: 0.7rem; }
 
         .product-name {
-            height: 14px;
+            height: 12px;
             background: #f3f4f6;
             border-radius: 4px;
             margin-bottom: 6px;
@@ -304,7 +371,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         }
 
         .product-price {
-            height: 12px;
+            height: 11px;
             background: #dcfce7;
             border-radius: 4px;
             width: 50%;
@@ -312,16 +379,17 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
 
         .product-btn {
             display: block;
-            margin: 0.5rem 0.75rem 0.75rem;
+            margin: 0 0.7rem 0.7rem;
             background: #16a34a;
             color: #fff;
             border: none;
             border-radius: 6px;
             padding: 7px;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 600;
             cursor: pointer;
             text-align: center;
+            width: calc(100% - 1.4rem);
             transition: background 0.2s;
         }
 
@@ -333,88 +401,156 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
             padding: 1.5rem;
             font-size: 0.8rem;
             color: #9ca3af;
-            margin-top: 2rem;
+            margin-top: 1rem;
             border-top: 1px solid #e5e7eb;
         }
     </style>
 </head>
 <body>
 
-    
-
     <!-- NAVBAR -->
     <nav>
-        <a href="#" class="nav-brand">QuickCart</a>
+        <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>
 
         <ul class="nav-links">
-            <li><a href="#">Home</a></li>
+            <li><a href="/WST-QuickCart/public/user/index.php" class="active">Home</a></li>
             <li><a href="#">Products</a></li>
-            <li><a href="categories">Categories</a></li>
+            <!-- REMOVED: Categories link -->
             <li><a href="#">Deals</a></li>
         </ul>
 
         <div class="nav-right">
-            <!-- Search Bar -->
             <div class="search-wrapper">
                 <input type="text" placeholder="Search products...">
                 <button>&#128269;</button>
             </div>
 
-            <!-- Account -->
             <a href="#" class="nav-icon-btn">
                 <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <?php echo htmlspecialchars($_SESSION['authUser']['username']); ?>
             </a>
 
-            <!-- Cart -->
             <a href="#" class="nav-icon-btn">
                 <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                 <span class="cart-badge">0</span>
                 Cart
             </a>
 
-            <!-- Logout -->
             <form action="/WST-QuickCart/app/controllers/userController.php" method="POST">
                 <button type="submit" name="logoutButton" class="btn-logout">Logout</button>
             </form>
         </div>
     </nav>
 
-    <!-- HERO -->
-    <div class="hero">
-        <img class="hero-bg" src="/WST-QuickCart/public/user/assets/img/hero-bg.jpg" alt="Hero Background">
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <h1>Shop Smart, Shot Fast, <span>Shop QuickCart</span></h1>
-            <p>Everything you need in just a few clicks.</p>
-            <a href="#" class="btn-shop">SHOP ALL PRODUCTS</a>
-        </div>
-    </div>
+    <!-- PAGE WRAPPER -->
+    <div class="page-wrapper">
 
-    <!-- PRODUCTS SECTION -->
-    <div class="container">
-        <div class="section-header">
-            <h2>Featured Products</h2>
-            <a href="#" class="see-all">See All &rarr;</a>
-        </div>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-title">Categories</div>
+            <ul class="sidebar-list">
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#dbeafe;">🥤</div>
+                        Beverages
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#fef9c3;">🍿</div>
+                        Snacks
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#fce7f3;">🍱</div>
+                        Ready-to-Eat
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#e0f2fe;">🧊</div>
+                        Frozen & Refrigerated
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#dcfce7;">🥫</div>
+                        Pantry Essentials
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#fae8ff;">🧴</div>
+                        Personal Care
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#f1f5f9;">🧹</div>
+                        Household Items
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#fee2e2;">🍺</div>
+                        Tobacco & Alcohol
+                        <span class="badge-18">18+</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#d1fae5;">💊</div>
+                        OTC Medicine
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <div class="cat-icon-sm" style="background:#ede9fe;">📱</div>
+                        Misc & Services
+                    </a>
+                </li>
+            </ul>
+        </aside>
 
-        <div class="product-grid">
-            <?php for ($i = 0; $i < 12; $i++): ?>
-            <div class="product-card">
-                <div class="product-img-placeholder">
-                    <!-- Product image will go here -->
-                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                    </svg>
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+
+            <!-- HERO -->
+            <div class="hero">
+                <img class="hero-bg" src="/WST-QuickCart/public/user/assets/img/hero-bg.jpg" alt="Hero Background">
+                <div class="hero-overlay">
+                    <h1>Shop Smart, Shop Fast, <span>Shop QuickCart</span></h1>
+                    <p>Everything you need in just a few clicks.</p>
+                    <a href="#" class="btn-shop">SHOP ALL PRODUCTS</a>
                 </div>
-                <div class="product-info">
-                    <div class="product-name"></div>
-                    <div class="product-price"></div>
-                </div>
-                <button class="product-btn">Add to Cart</button>
             </div>
-            <?php endfor; ?>
+
+            <!-- FEATURED PRODUCTS -->
+            <div class="section-header">
+                <h2>Featured Products</h2>
+                <a href="#" class="see-all">See All &rarr;</a>
+            </div>
+
+            <div class="product-grid">
+                <?php for ($i = 0; $i < 12; $i++): ?>
+                <div class="product-card">
+                    <div class="product-img-placeholder">
+                        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name"></div>
+                        <div class="product-price"></div>
+                    </div>
+                    <button class="product-btn">Add to Cart</button>
+                </div>
+                <?php endfor; ?>
+            </div>
+
         </div>
     </div>
 
@@ -423,7 +559,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         &copy; <?php echo date('Y'); ?> QuickCart. All rights reserved.
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11 "></script>
     <?php flashMessage(); ?>
 
 </body>
