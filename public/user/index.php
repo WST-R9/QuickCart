@@ -349,7 +349,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         <ul class="nav-links">
             <li><a href="#">Home</a></li>
             <li><a href="#">Products</a></li>
-            <li><a href="#">Categories</a></li>
+            <li><a href="categories">Categories</a></li>
             <li><a href="#">Deals</a></li>
         </ul>
 
