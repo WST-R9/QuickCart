@@ -449,68 +449,68 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         <aside class="sidebar">
             <div class="sidebar-title">Categories</div>
             <ul class="sidebar-list">
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#dbeafe;">🥤</div>
-                        Beverages
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#fef9c3;">🍿</div>
-                        Snacks
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#fce7f3;">🍱</div>
-                        Ready-to-Eat
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#e0f2fe;">🧊</div>
-                        Frozen & Refrigerated
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#dcfce7;">🥫</div>
-                        Pantry Essentials
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#fae8ff;">🧴</div>
-                        Personal Care
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#f1f5f9;">🧹</div>
-                        Household Items
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#fee2e2;">🍺</div>
-                        Tobacco & Alcohol
-                        <span class="badge-18">18+</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#d1fae5;">💊</div>
-                        OTC Medicine
-                    </a>
-                </li>
-                <li>
-                    <a href="#">
-                        <div class="cat-icon-sm" style="background:#ede9fe;">📱</div>
-                        Misc & Services
-                    </a>
-                </li>
-            </ul>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=beverages">
+            <div class="cat-icon-sm" style="background:#dbeafe;">🥤</div>
+            Beverages
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=snacks">
+            <div class="cat-icon-sm" style="background:#fef9c3;">🍿</div>
+            Snacks
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=readytoeat">
+            <div class="cat-icon-sm" style="background:#fce7f3;">🍱</div>
+            Ready-to-Eat
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=frozen">
+            <div class="cat-icon-sm" style="background:#e0f2fe;">🧊</div>
+            Frozen & Refrigerated
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=pantry">
+            <div class="cat-icon-sm" style="background:#dcfce7;">🥫</div>
+            Pantry Essentials
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=personalcare">
+            <div class="cat-icon-sm" style="background:#fae8ff;">🧴</div>
+            Personal Care
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=household">
+            <div class="cat-icon-sm" style="background:#f1f5f9;">🧹</div>
+            Household Items
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=tobacco">
+            <div class="cat-icon-sm" style="background:#fee2e2;">🍺</div>
+            Tobacco & Alcohol
+            <span class="badge-18">18+</span>
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=medicine">
+            <div class="cat-icon-sm" style="background:#d1fae5;">💊</div>
+            OTC Medicine
+        </a>
+    </li>
+    <li>
+        <a href="/WST-QuickCart/public/user/categories.php?cat=misc">
+            <div class="cat-icon-sm" style="background:#ede9fe;">📱</div>
+            Misc & Services
+        </a>
+    </li>
+</ul>
         </aside>
 
         <!-- MAIN CONTENT -->
