@@ -90,11 +90,7 @@ document.querySelectorAll('.cat-link').forEach(function(link) {
 
 <nav>
     <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>
-    <ul class="nav-links">
-        <li><a href="/WST-QuickCart/public/user/index.php">Home</a></li>
-        <li><a href="#">Products</a></li>
-        <li><a href="#">Deals</a></li>
-    </ul>
+    
     <div class="nav-right">
         <div class="search-wrapper">
             <input type="text" placeholder="Search products...">
