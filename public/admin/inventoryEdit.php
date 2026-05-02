@@ -4,6 +4,7 @@ include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/activityLog.php");
 
 if (!isset($_GET['id'])) {
     header("Location: inventory.php");
@@ -37,6 +38,36 @@ if (isset($_POST['updateProduct'])) {
     $supplierId = !empty($_POST['supplierId']) ? intval($_POST['supplierId']) : "NULL";
     $status = mysqli_real_escape_string($conn, $_POST['status']);
 
+    $imageSet = "";
+
+    if (!empty($_FILES['productImage']['name'])) {
+        $uploadDir = "../uploads/products/";
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+        $ext = strtolower(pathinfo($_FILES['productImage']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!in_array($ext, $allowed)) {
+            echo "<script>alert('Invalid image type.'); window.location.href='inventory-edit.php?id=$productId';</script>";
+            exit;
+        }
+
+        if ($_FILES['productImage']['size'] > 2 * 1024 * 1024) {
+            echo "<script>alert('Image exceeds 2MB limit.'); window.location.href='inventory-edit.php?id=$productId';</script>";
+            exit;
+        }
+
+        // Delete old image if exists
+        if (!empty($product['imageUrl'])) {
+            $oldFile = "../uploads/products/" . $product['imageUrl'];
+            if (file_exists($oldFile)) unlink($oldFile);
+        }
+
+        $filename = $product['uuid'] . '.' . $ext;
+        move_uploaded_file($_FILES['productImage']['tmp_name'], $uploadDir . $filename);
+        $imageSet = ", imageUrl='$filename'";
+    }
+
     $updateQuery = "UPDATE products SET
         name='$name',
         slug='$slug',
@@ -46,11 +77,12 @@ if (isset($_POST['updateProduct'])) {
         categoryId=$categoryId,
         supplierId=$supplierId,
         status='$status'
+        $imageSet
     WHERE productId=$productId";
 
     mysqli_query($conn, $updateQuery);
-
     echo "<script>alert('Product updated successfully!'); window.location.href='inventory.php';</script>";
+    logActivity($conn, $_SESSION['user_id'], 'updated_product', 'inventory', $productId, $name);
     exit;
 }
 ?>
@@ -74,7 +106,7 @@ if (isset($_POST['updateProduct'])) {
         <div class="card-body">
           <h5 class="card-title">Update Product</h5>
 
-          <form method="POST">
+          <form method="POST" enctype="multipart/form-data">
             <div class="mb-3">
               <label class="form-label">Product Name</label>
               <input type="text" name="name" class="form-control"
@@ -137,6 +169,21 @@ if (isset($_POST['updateProduct'])) {
                 <option value="inactive" <?= ($product['status'] == "inactive") ? "selected" : "" ?>>Inactive</option>
                 <option value="out_of_stock" <?= ($product['status'] == "out_of_stock") ? "selected" : "" ?>>Out of Stock</option>
               </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Product Image <span class="text-muted">(Optional)</span></label>
+
+              <?php if (!empty($product['imageUrl'])): ?>
+                <div class="mb-2 d-flex align-items-center gap-3">
+                  <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl']) ?>"
+                       style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+                  <small class="text-muted">Current image. Upload a new one to replace it.</small>
+                </div>
+              <?php endif; ?>
+
+              <input type="file" name="productImage" class="form-control" accept="image/*">
+              <small class="text-muted">JPG, PNG, WEBP. Max 2MB. Leave blank to keep current.</small>
             </div>
 
             <button type="submit" name="updateProduct" class="btn btn-primary w-100">

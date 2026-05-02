@@ -4,6 +4,7 @@ include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/activityLog.php");
 
 // ----------------------
 // ADD PRODUCT
@@ -18,9 +19,32 @@ if (isset($_POST['addProduct'])) {
     $categoryId = !empty($_POST['categoryId']) ? intval($_POST['categoryId']) : "NULL";
     $supplierId = !empty($_POST['supplierId']) ? intval($_POST['supplierId']) : "NULL";
     $status = mysqli_real_escape_string($conn, $_POST['status']);
+    $imageUrl = "NULL";
 
-    $insertQuery = "INSERT INTO products (uuid, name, slug, description, price, stock, categoryId, supplierId, status)
-                    VALUES ('$uuid', '$name', '$slug', '$description', $price, $stock, $categoryId, $supplierId, '$status')";
+    if (!empty($_FILES['productImage']['name'])) {
+        $uploadDir = "../uploads/products/";
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+        $ext = strtolower(pathinfo($_FILES['productImage']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!in_array($ext, $allowed)) {
+            echo "<script>alert('Invalid image type.'); window.location.href='inventory.php';</script>";
+            exit;
+        }
+
+        if ($_FILES['productImage']['size'] > 2 * 1024 * 1024) {
+            echo "<script>alert('Image exceeds 2MB limit.'); window.location.href='inventory.php';</script>";
+            exit;
+        }
+
+        $filename = $uuid . '.' . $ext;
+        move_uploaded_file($_FILES['productImage']['tmp_name'], $uploadDir . $filename);
+        $imageUrl = "'" . $filename . "'";
+    }
+
+    $insertQuery = "INSERT INTO products (uuid, name, slug, description, price, stock, imageUrl, categoryId, supplierId, status)
+                    VALUES ('$uuid', '$name', '$slug', '$description', $price, $stock, $imageUrl, $categoryId, $supplierId, '$status')";
 
     if (mysqli_query($conn, $insertQuery)) {
         echo "<script>alert('Product added successfully!'); window.location.href='inventory.php';</script>";
@@ -28,6 +52,8 @@ if (isset($_POST['addProduct'])) {
     } else {
         echo "<script>alert('Error adding product. Slug might already exist.');</script>";
     }
+  logActivity($conn, $_SESSION['user_id'], 'added_product', 'inventory', $conn->insert_id, $name);
+
 }
 
 // ----------------------
@@ -35,9 +61,18 @@ if (isset($_POST['addProduct'])) {
 // ----------------------
 if (isset($_GET['delete'])) {
     $productId = intval($_GET['delete']);
-    mysqli_query($conn, "DELETE FROM products WHERE productId = $productId");
 
+    // Delete image file if exists
+    $imgQuery = mysqli_query($conn, "SELECT imageUrl FROM products WHERE productId = $productId");
+    $imgRow = mysqli_fetch_assoc($imgQuery);
+    if (!empty($imgRow['imageUrl'])) {
+        $imgFile = "../uploads/products/" . $imgRow['imageUrl'];
+        if (file_exists($imgFile)) unlink($imgFile);
+    }
+
+    mysqli_query($conn, "DELETE FROM products WHERE productId = $productId");
     echo "<script>alert('Product deleted successfully!'); window.location.href='inventory.php';</script>";
+    logActivity($conn, $_SESSION['user_id'], 'deleted_product', 'inventory', $productId, $imgRow['imageUrl']);
     exit;
 }
 
@@ -81,7 +116,7 @@ $suppliersResult = mysqli_query($conn, "SELECT * FROM suppliers ORDER BY name AS
         <div class="card-body">
           <h5 class="card-title">Add Product</h5>
 
-          <form method="POST">
+          <form method="POST" enctype="multipart/form-data">
             <div class="mb-3">
               <label class="form-label">Product Name</label>
               <input type="text" name="name" class="form-control" required>
@@ -137,6 +172,12 @@ $suppliersResult = mysqli_query($conn, "SELECT * FROM suppliers ORDER BY name AS
               </select>
             </div>
 
+            <div class="mb-3">
+              <label class="form-label">Product Image <span class="text-muted">(Optional)</span></label>
+              <input type="file" name="productImage" class="form-control" accept="image/*">
+              <small class="text-muted">JPG, PNG, WEBP. Max 2MB.</small>
+            </div>
+
             <button type="submit" name="addProduct" class="btn btn-success w-100">
               <i class="bi bi-plus-circle"></i> Add Product
             </button>
@@ -156,6 +197,7 @@ $suppliersResult = mysqli_query($conn, "SELECT * FROM suppliers ORDER BY name AS
           <table class="table table-borderless datatable">
             <thead>
               <tr>
+                <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
                 <th>Supplier</th>
@@ -175,6 +217,17 @@ $suppliersResult = mysqli_query($conn, "SELECT * FROM suppliers ORDER BY name AS
                   elseif ($row['status'] == "out_of_stock") $badge = "bg-danger";
                 ?>
                 <tr>
+                  <td>
+                    <?php if (!empty($row['imageUrl'])): ?>
+                      <img src="../uploads/products/<?= htmlspecialchars($row['imageUrl']) ?>"
+                           style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                    <?php else: ?>
+                      <div style="width:48px;height:48px;background:#e6f4ea;border-radius:6px;
+                                  display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-image text-muted"></i>
+                      </div>
+                    <?php endif; ?>
+                  </td>
                   <td><?= htmlspecialchars($row['name']) ?></td>
                   <td><?= $row['categoryName'] ? htmlspecialchars($row['categoryName']) : "None" ?></td>
                   <td><?= $row['supplierName'] ? htmlspecialchars($row['supplierName']) : "None" ?></td>

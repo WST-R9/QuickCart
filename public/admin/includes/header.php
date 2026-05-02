@@ -11,7 +11,7 @@
 
   <!-- Favicons -->
   <link href="assets/img/qc-favicon.png" rel="icon">
-  <link href="assets/img/qc-touch-icon.png" rel="apple-touch-icon">
+  <link href="assets/img/qc-touch-icon.png" rel="qc-touch-icon">
 
   <!-- Google Fonts -->
   <link href="https://fonts.gstatic.com" rel="preconnect">
@@ -29,13 +29,6 @@
   <!-- Template Main CSS File -->
   <link href="assets/css/style.css" rel="stylesheet">
 
-  <!-- =======================================================
-  * Template Name: NiceAdmin
-  * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
-  * Updated: Apr 20 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
 </head>
 
 <body>
