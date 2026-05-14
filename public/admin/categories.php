@@ -4,6 +4,7 @@ include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/activityLog.php");
 
 // ------------------------
 // ADD CATEGORY
@@ -23,6 +24,7 @@ if (isset($_POST['addCategory'])) {
     } else {
         echo "<script>alert('Error adding category!');</script>";
     }
+    logActivity($conn, $_SESSION['user_id'], 'added_category', 'categories', $conn->insert_id, $name);
 }
 
 // ------------------------
@@ -35,6 +37,7 @@ if (isset($_GET['delete'])) {
     mysqli_query($conn, $deleteQuery);
 
     echo "<script>alert('Category deleted!'); window.location.href='categories.php';</script>";
+    logActivity($conn, $_SESSION['user_id'], 'deleted_category', 'categories', $deleteId);
     exit;
 }
 
@@ -55,6 +58,7 @@ if (isset($_POST['updateCategory'])) {
     mysqli_query($conn, $updateQuery);
 
     echo "<script>alert('Category updated successfully!'); window.location.href='categories.php';</script>";
+    logActivity($conn, $_SESSION['user_id'], 'updated_category', 'categories', $categoryId, $name);
     exit;
 }
 

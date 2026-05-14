@@ -108,6 +108,13 @@
       </a>
     </li>
 
+    <li class="nav-item">
+      <a class="nav-link <?= ($page == 'logs.php') ? '' : "collapsed" ?>" href="logs">
+        <i class="bi bi-journal-text"></i>
+        <span>Activity Logs</span>
+      </a>
+    </li>
+
 
     <li class="nav-heading">Accounts</li>
 
@@ -115,7 +122,7 @@
     <li class="nav-item">
       <a class="nav-link <?= ($page == 'accounts.php') ? '' : "collapsed" ?> " href="accounts">
         <i class="bi bi-person-gear"></i>
-        <span>Accounts</span>
+        <span>Account Settings</span>
       </a>
     </li>
 
