@@ -1,6 +1,19 @@
 <?php
 include_once(__DIR__ . '/../../app/middleware/user.php');
 include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
+
+$result = $conn->query("SELECT * FROM products WHERE status = 'active' ORDER BY categoryId, name");
+$allProducts = [];
+while ($row = $result->fetch_assoc()) {
+    $allProducts[$row['categoryId']][] = $row;
+}
+
+$userId = $_SESSION['authUser']['user_id'] 
+       ?? $_SESSION['authUser']['userId'] 
+       ?? $_SESSION['authUser']['id'] 
+       ?? 0;
+$cartResult = $conn->query("SELECT SUM(quantity) as total FROM cart WHERE userId = " . intval($userId));
+$cartCount = $cartResult->fetch_assoc()['total'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +39,7 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         .btn-logout { background: transparent; border: 1.5px solid #16a34a; color: #16a34a; padding: 6px 14px; border-radius: 7px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
         .btn-logout:hover { background: #16a34a; color: #fff; }
         .page-wrapper { display: flex; max-width: 100%; margin: 1.5rem 0; padding: 0 2rem; gap: 1.5rem; align-items: flex-start; }
-        .sidebar {width: 320px;flex-shrink: 0;background: #fff;border-radius: 12px;border: 1px solid #e5e7eb;overflow: hidden;position: sticky;top: 80px;}
+        .sidebar { width: 320px; flex-shrink: 0; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; position: sticky; top: 80px; }
         .sidebar-title { background: #14532d; color: #fff; padding: 1.3rem 1.4rem; font-size: 1.15rem; font-weight: 700; }
         .sidebar-list { list-style: none; }
         .sidebar-list li a { display: flex; align-items: center; gap: 14px; padding: 1.1rem 1.4rem; text-decoration: none; color: #374151; font-size: 1rem; font-weight: 500; border-bottom: 1px solid #f3f4f6; cursor: pointer; border-left: 3px solid transparent; }
@@ -55,8 +68,8 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         .product-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(22,163,74,0.13); border-color: #16a34a; }
         .product-img-placeholder { width: 100%; height: 130px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
         .product-info { padding: 0.65rem; }
-        .product-name { height: 12px; background: #f3f4f6; border-radius: 4px; margin-bottom: 6px; width: 80%; }
-        .product-price { height: 11px; background: #dcfce7; border-radius: 4px; width: 50%; }
+        .product-name-text { font-size: 0.82rem; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; line-height: 1.3; }
+        .product-price-text { font-size: 0.85rem; color: #16a34a; font-weight: 700; }
         .product-btn { display: block; margin: 0 0.65rem 0.65rem; background: #16a34a; color: #fff; border: none; border-radius: 6px; padding: 7px; font-size: 0.76rem; font-weight: 600; cursor: pointer; width: calc(100% - 1.3rem); }
         .product-btn:hover { background: #14532d; }
         .cat-panel { display: none; }
@@ -64,33 +77,10 @@ include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
         footer { text-align: center; padding: 1.5rem; font-size: 0.8rem; color: #9ca3af; margin-top: 1rem; border-top: 1px solid #e5e7eb; }
     </style>
 </head>
- <script>
-// Auto-open category from URL param e.g. ?cat=snacks
-const urlParams = new URLSearchParams(window.location.search);
-const catParam = urlParams.get('cat');
-if (catParam) {
-    const targetPanel = document.getElementById('panel-' + catParam);
-    const targetLink = document.querySelector('.cat-link[data-cat="' + catParam + '"]');
-    if (targetPanel && targetLink) {
-        document.querySelectorAll('.cat-panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.cat-link').forEach(a => a.classList.remove('active'));
-        targetPanel.classList.add('active');
-        targetLink.classList.add('active');
-    }
-}
-
-// your existing click JS below...
-document.querySelectorAll('.cat-link').forEach(function(link) {
-   ...
-</script>
-        
 <body>
-
-
 
 <nav>
     <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>
-    
     <div class="nav-right">
         <div class="search-wrapper">
             <input type="text" placeholder="Search products...">
@@ -100,9 +90,9 @@ document.querySelectorAll('.cat-link').forEach(function(link) {
             <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <?php echo htmlspecialchars($_SESSION['authUser']['username']); ?>
         </a>
-        <a href="#" class="nav-icon-btn">
+        <a href="/WST-QuickCart/public/user/cart.php" class="nav-icon-btn">
             <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            <span class="cart-badge">0</span>
+            <span class="cart-badge"><?php echo $cartCount; ?></span>
             Cart
         </a>
         <form action="/WST-QuickCart/app/controllers/userController.php" method="POST">
@@ -135,139 +125,60 @@ document.querySelectorAll('.cat-link').forEach(function(link) {
             <img src="/WST-QuickCart/public/user/assets/img/hero-bg.jpg" alt="Hero">
             <div class="hero-overlay">
                 <h1>Shop Everything, <span>At Your Fingertips</span></h1>
-                <p>Fresh products delivered straight to your doorstep.</p>
+                <p>Everything you need in just a few clicks.</p>
                 <a href="#" class="btn-shop">SHOP ALL PRODUCTS</a>
             </div>
         </div>
 
-        <div id="panel-beverages" class="cat-panel active">
-            <div class="section-header"><h2>🥤 Beverages</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Soft drinks, water, energy drinks, coffee, tea, milk & juices.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Soft Drinks</button>
-                <button class="sub-tab">Bottled Water</button><button class="sub-tab">Energy Drinks</button>
-                <button class="sub-tab">Coffee & Tea</button><button class="sub-tab">Milk & Juices</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🥤</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
+        <?php
+        $panels = [
+            'beverages'   => ['id' => 1, 'emoji' => '🥤', 'label' => 'Beverages',            'desc' => 'Soft drinks, water, energy drinks, coffee, tea, milk & juices.',         'tabs' => ['All','Soft Drinks','Bottled Water','Energy Drinks','Coffee & Tea','Milk & Juices']],
+            'snacks'      => ['id' => 2, 'emoji' => '🍿', 'label' => 'Snacks',               'desc' => 'Chips, crackers, cookies, candy, chocolates & nuts.',                    'tabs' => ['All','Chips & Crackers','Cookies','Candy & Chocolates','Nuts']],
+            'readytoeat'  => ['id' => 3, 'emoji' => '🍱', 'label' => 'Ready-to-Eat',         'desc' => 'Sandwiches, burgers, hotdogs, instant noodles, cup meals & rice meals.', 'tabs' => ['All','Sandwiches','Hotdogs','Instant Noodles','Cup Meals','Rice Meals']],
+            'frozen'      => ['id' => 4, 'emoji' => '🧊', 'label' => 'Frozen & Refrigerated','desc' => 'Ice cream, frozen meals, yogurt, cheese & processed meats.',             'tabs' => ['All','Ice Cream','Frozen Meals','Yogurt & Cheese','Processed Meat']],
+            'pantry'      => ['id' => 5, 'emoji' => '🥫', 'label' => 'Pantry Essentials',    'desc' => 'Bread, canned goods, instant coffee & condiments.',                      'tabs' => ['All','Bread','Canned Goods','Instant Coffee','Condiments']],
+            'personalcare'=> ['id' => 6, 'emoji' => '🧴', 'label' => 'Personal Care',        'desc' => 'Shampoo, soap, toothpaste, deodorant & sanitary products.',              'tabs' => ['All','Shampoo','Soap','Toothpaste','Deodorant','Sanitary']],
+            'household'   => ['id' => 7, 'emoji' => '🧹', 'label' => 'Household Items',      'desc' => 'Tissue, cleaning supplies, batteries & light bulbs.',                    'tabs' => ['All','Tissue & Paper','Cleaning Supplies','Batteries','Light Bulbs']],
+            'tobacco'     => ['id' => 8, 'emoji' => '🍺', 'label' => 'Tobacco & Alcohol',    'desc' => 'Cigarettes, vapes, beer & liquor. Must be 18+ to purchase.',             'tabs' => ['All','Cigarettes','Vapes','Beer','Liquor']],
+            'medicine'    => ['id' => 9, 'emoji' => '💊', 'label' => 'OTC Medicine',         'desc' => 'Pain relievers, vitamins & basic first aid items.',                      'tabs' => ['All','Pain Relievers','Vitamins','First Aid']],
+            'misc'        => ['id' => 10,'emoji' => '📱', 'label' => 'Misc & Services',      'desc' => 'Phone load, bills payment, remittance & SIM cards.',                     'tabs' => ['All','Phone Load','Bills Payment','Remittance','SIM Cards']],
+        ];
 
-        <div id="panel-snacks" class="cat-panel">
-            <div class="section-header"><h2>🍿 Snacks</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Chips, crackers, cookies, candy, chocolates & nuts.</p>
+        foreach ($panels as $key => $cat):
+            $isActive = $key === 'beverages' ? 'active' : '';
+        ?>
+        <div id="panel-<?php echo $key; ?>" class="cat-panel <?php echo $isActive; ?>">
+            <div class="section-header">
+                <h2><?php echo $cat['emoji'] . ' ' . $cat['label']; ?></h2>
+                <a href="#" class="see-all">See All →</a>
+            </div>
+            <p class="section-desc"><?php echo $cat['desc']; ?></p>
             <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Chips & Crackers</button>
-                <button class="sub-tab">Cookies</button><button class="sub-tab">Candy & Chocolates</button>
-                <button class="sub-tab">Nuts</button>
+                <?php foreach ($cat['tabs'] as $i => $tab): ?>
+                <button class="sub-tab <?php echo $i === 0 ? 'active' : ''; ?>"><?php echo $tab; ?></button>
+                <?php endforeach; ?>
             </div>
             <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🍿</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
+                <?php if (!empty($allProducts[$cat['id']])): ?>
+                    <?php foreach ($allProducts[$cat['id']] as $product): ?>
+                    <div class="product-card">
+                        <div class="product-img-placeholder"><?php echo $cat['emoji']; ?></div>
+                        <div class="product-info">
+                            <div class="product-name-text"><?php echo htmlspecialchars($product['name']); ?></div>
+                            <div class="product-price-text">₱<?php echo number_format($product['price'], 2); ?></div>
+                        </div>
+                        <form action="/WST-QuickCart/app/controllers/cartController.php" method="POST">
+                            <input type="hidden" name="productId" value="<?php echo $product['productId']; ?>">
+                            <button type="submit" name="addToCart" class="product-btn">Add to Cart</button>
+                        </form>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p style="color:#6b7280;font-size:0.85rem;">No products yet.</p>
+                <?php endif; ?>
             </div>
         </div>
-
-        <div id="panel-readytoeat" class="cat-panel">
-            <div class="section-header"><h2>🍱 Ready-to-Eat</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Sandwiches, burgers, hotdogs, instant noodles, cup meals & rice meals.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Sandwiches & Burgers</button>
-                <button class="sub-tab">Hotdogs</button><button class="sub-tab">Instant Noodles</button>
-                <button class="sub-tab">Cup Meals</button><button class="sub-tab">Rice Meals</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🍱</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-frozen" class="cat-panel">
-            <div class="section-header"><h2>🧊 Frozen & Refrigerated</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Ice cream, frozen meals, yogurt, cheese & processed meats.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Ice Cream</button>
-                <button class="sub-tab">Frozen Meals</button><button class="sub-tab">Yogurt & Cheese</button>
-                <button class="sub-tab">Processed Meat</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🧊</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-pantry" class="cat-panel">
-            <div class="section-header"><h2>🥫 Pantry Essentials</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Bread, canned goods, instant coffee & condiments.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Bread</button>
-                <button class="sub-tab">Canned Goods</button><button class="sub-tab">Instant Coffee</button>
-                <button class="sub-tab">Condiments</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🥫</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-personalcare" class="cat-panel">
-            <div class="section-header"><h2>🧴 Personal Care</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Shampoo, soap, toothpaste, deodorant & sanitary products.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Shampoo & Conditioner</button>
-                <button class="sub-tab">Soap</button><button class="sub-tab">Toothpaste</button>
-                <button class="sub-tab">Deodorant</button><button class="sub-tab">Sanitary</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🧴</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-household" class="cat-panel">
-            <div class="section-header"><h2>🧹 Household Items</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Tissue, cleaning supplies, batteries & light bulbs.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Tissue & Paper</button>
-                <button class="sub-tab">Cleaning Supplies</button><button class="sub-tab">Batteries</button>
-                <button class="sub-tab">Light Bulbs</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🧹</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-tobacco" class="cat-panel">
-            <div class="section-header"><h2>🍺 Tobacco & Alcohol</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Cigarettes, vapes, beer & liquor. Must be 18+ to purchase.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Cigarettes</button>
-                <button class="sub-tab">Vapes</button><button class="sub-tab">Beer</button>
-                <button class="sub-tab">Liquor</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">🍺</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-medicine" class="cat-panel">
-            <div class="section-header"><h2>💊 OTC Medicine</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Pain relievers, vitamins & basic first aid items.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Pain Relievers</button>
-                <button class="sub-tab">Vitamins</button><button class="sub-tab">First Aid</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">💊</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
-
-        <div id="panel-misc" class="cat-panel">
-            <div class="section-header"><h2>📱 Misc & Services</h2><a href="#" class="see-all">See All →</a></div>
-            <p class="section-desc">Phone load, bills payment, remittance & SIM cards.</p>
-            <div class="subcategory-tabs">
-                <button class="sub-tab active">All</button><button class="sub-tab">Phone Load</button>
-                <button class="sub-tab">Bills Payment</button><button class="sub-tab">Remittance</button>
-                <button class="sub-tab">SIM Cards</button>
-            </div>
-            <div class="product-grid">
-                <?php for($i=0;$i<8;$i++): ?><div class="product-card"><div class="product-img-placeholder">📱</div><div class="product-info"><div class="product-name"></div><div class="product-price"></div></div><button class="product-btn">Add to Cart</button></div><?php endfor; ?>
-            </div>
-        </div>
+        <?php endforeach; ?>
 
     </div>
 </div>
@@ -284,14 +195,8 @@ document.querySelectorAll('.cat-link').forEach(function(link) {
     link.addEventListener('click', function(e) {
         e.preventDefault();
         var id = this.getAttribute('data-cat');
-
-        document.querySelectorAll('.cat-panel').forEach(function(p) {
-            p.classList.remove('active');
-        });
-        document.querySelectorAll('.cat-link').forEach(function(a) {
-            a.classList.remove('active');
-        });
-
+        document.querySelectorAll('.cat-panel').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelectorAll('.cat-link').forEach(function(a) { a.classList.remove('active'); });
         document.getElementById('panel-' + id).classList.add('active');
         this.classList.add('active');
     });
@@ -300,9 +205,7 @@ document.querySelectorAll('.cat-link').forEach(function(link) {
 document.querySelectorAll('.subcategory-tabs').forEach(function(group) {
     group.querySelectorAll('.sub-tab').forEach(function(tab) {
         tab.addEventListener('click', function() {
-            group.querySelectorAll('.sub-tab').forEach(function(t) {
-                t.classList.remove('active');
-            });
+            group.querySelectorAll('.sub-tab').forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
         });
     });
