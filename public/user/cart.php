@@ -113,8 +113,10 @@ $cartCount = count($cartItems);
 
 
 
+
+
 <nav>
-    <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>
+    <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>git 
     <div class="nav-right">
         <div class="search-wrapper">
             <input type="text" placeholder="Search products...">
