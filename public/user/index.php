@@ -1,561 +1,360 @@
 <?php
-include_once(__DIR__ . '/../../app/middleware/user.php');
-include_once(__DIR__ . '/../../app/helpers/flashMessage.php');
+include_once("../../app/middleware/user.php");
+include('./includes/header.php');
+include('./includes/topbar.php');
+include('./includes/sidebar.php');
+include_once("../../app/config/config.php");
+
+$userId = $_SESSION['authUser']['userId'] ?? 0;
+$fullName = $_SESSION['authUser']['fullName'] ?? 'User';
+$firstName = explode(' ', trim($fullName))[0];
+
+// ----------------------------------------
+// USER ACCOUNT SUMMARY
+// ----------------------------------------
+
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM orders WHERE userId = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$totalOrders = (int) $stmt->get_result()->fetch_assoc()['total'];
+$stmt->close();
+
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM orders WHERE userId = ? AND status = 'pending'");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$pendingOrders = (int) $stmt->get_result()->fetch_assoc()['total'];
+$stmt->close();
+
+$stmt = $conn->prepare(
+  "SELECT IFNULL(SUM(p.amount), 0) AS totalSpent
+     FROM payments p
+     JOIN orders o ON p.orderId = o.orderId
+     WHERE o.userId = ? AND p.status = 'paid'"
+);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$totalSpent = (float) $stmt->get_result()->fetch_assoc()['totalSpent'];
+$stmt->close();
+
+$stmt = $conn->prepare("SELECT IFNULL(SUM(quantity), 0) AS cartCount FROM cart WHERE userId = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$cartCount = (int) $stmt->get_result()->fetch_assoc()['cartCount'];
+$stmt->close();
+
+// ----------------------------------------
+// RECENT ORDERS (last 5)
+// ----------------------------------------
+$stmt = $conn->prepare(
+  "SELECT orderId, orderNumber, totalAmount, status, orderedAt
+     FROM orders
+     WHERE userId = ?
+     ORDER BY orderedAt DESC
+     LIMIT 5"
+);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$recentOrders = $stmt->get_result();
+
+// ----------------------------------------
+// FEATURED PRODUCTS — active, in-stock, newest 8
+// ----------------------------------------
+$featuredResult = mysqli_query(
+  $conn,
+  "SELECT p.productId, p.name, p.price, p.stock, p.imageUrl,
+            c.name AS categoryName
+     FROM products p
+     LEFT JOIN categories c ON p.categoryId = c.categoryId
+     WHERE p.status = 'active' AND p.stock > 0
+     ORDER BY p.createdAt DESC
+     LIMIT 8"
+);
+
+// ----------------------------------------
+// TOP-LEVEL CATEGORIES for filter pills
+// ----------------------------------------
+$catsResult = mysqli_query(
+  $conn,
+  "SELECT categoryId, name
+     FROM categories
+     WHERE parentId IS NULL
+     ORDER BY name ASC"
+);
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickCart – Shop</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+<div class="pagetitle">
+  <h1>My Dashboard</h1>
+  <nav>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index">Home</a></li>
+      <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+  </nav>
+</div>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f4;
-            color: #333;
-        }
+<section class="section">
+  <div class="row">
 
-        /* ── NAVBAR ── */
-        nav {
-            background-color: #fff;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 65px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid #e5e7eb;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
+    <!-- ========= LEFT COLUMN ========= -->
+    <div class="col-lg-8">
 
-        .nav-brand {
-            color: #16a34a;
-            font-size: 1.4rem;
-            font-weight: 700;
-            text-decoration: none;
-            letter-spacing: 1px;
-        }
+      <!-- Hero Banner -->
+      <div class="shop-hero">
+        <h2>Welcome back, <?= htmlspecialchars($firstName) ?>! 👋</h2>
+        <p>Fresh groceries &amp; essentials, delivered fast. What do you need today?</p>
+        <a href="allProducts" class="btn btn-light mt-3 fw-bold" style="color:#005d21;">
+          <i class="bi bi-shop me-1"></i> Shop Now
+        </a>
+      </div>
 
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 1.8rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: #374151;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover { color: #16a34a; }
-        .nav-links a.active { color: #16a34a; font-weight: 700; }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1.2rem;
-        }
-
-        .search-wrapper {
-            display: flex;
-            align-items: center;
-            border: 1.5px solid #d1d5db;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: border-color 0.2s;
-        }
-
-        .search-wrapper:focus-within { border-color: #16a34a; }
-
-        .search-wrapper input {
-            border: none;
-            outline: none;
-            padding: 7px 12px;
-            font-size: 0.85rem;
-            width: 200px;
-            color: #333;
-            background: transparent;
-        }
-
-        .search-wrapper button {
-            background: #16a34a;
-            border: none;
-            padding: 8px 12px;
-            cursor: pointer;
-            color: #fff;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-        }
-
-        .search-wrapper button:hover { background: #14532d; }
-
-        .nav-icon-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            text-decoration: none;
-            color: #374151;
-            font-size: 0.7rem;
-            font-weight: 500;
-            transition: color 0.2s;
-            position: relative;
-        }
-
-        .nav-icon-btn:hover { color: #16a34a; }
-
-        .nav-icon-btn svg {
-            width: 22px;
-            height: 22px;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 1.8;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        .cart-badge {
-            position: absolute;
-            top: -4px;
-            right: -6px;
-            background: #16a34a;
-            color: #fff;
-            font-size: 0.6rem;
-            font-weight: 700;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-logout {
-            background: transparent;
-            border: 1.5px solid #16a34a;
-            color: #16a34a;
-            padding: 6px 14px;
-            border-radius: 7px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: background 0.2s, color 0.2s;
-        }
-
-        .btn-logout:hover { background: #16a34a; color: #fff; }
-
-        /* ── PAGE LAYOUT ── */
-        .page-wrapper {
-            display: flex;
-            /* REMOVED: max-width: 1200px; */
-            margin: 1.5rem auto;
-            padding: 0 2rem;        /* slightly more horizontal breathing room */
-            gap: 2rem;              /* increased gap for wider sidebar */
-            align-items: flex-start;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            width: 300px;           /* increased from 240px */
-            flex-shrink: 0;
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-            position: sticky;
-            top: 80px;
-        }
-
-        .sidebar-title {
-            background: #14532d;
-            color: #fff;
-            padding: 1.1rem 1.4rem; /* slightly larger padding */
-            font-size: 1.05rem;     /* slightly larger text */
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .sidebar-list { list-style: none; }
-
-        .sidebar-list li a {
-            display: flex;
-            align-items: center;
-            gap: 14px;              /* increased from 12px */
-            padding: 0.9rem 1.4rem; /* increased from 0.75rem 1.2rem */
-            text-decoration: none;
-            color: #374151;
-            font-size: 0.92rem;     /* increased from 0.88rem */
-            font-weight: 500;
-            border-bottom: 1px solid #f3f4f6;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .sidebar-list li a:hover,
-        .sidebar-list li a.active {
-            background: #f0fdf4;
-            color: #16a34a;
-        }
-
-        .sidebar-list li a.active { border-left: 3px solid #16a34a; }
-        .sidebar-list li:last-child a { border-bottom: none; }
-
-        .cat-icon-sm {
-            width: 38px;            /* increased from 34px */
-            height: 38px;           /* increased from 34px */
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;      /* increased from 1.1rem */
-            flex-shrink: 0;
-        }
-
-        .badge-18 {
-            margin-left: auto;
-            background: #fef3c7;
-            color: #92400e;
-            font-size: 0.65rem;     /* slightly larger */
-            font-weight: 700;
-            padding: 2px 8px;       /* slightly wider */
-            border-radius: 20px;
-        }
-
-        /* ── MAIN CONTENT ── */
-        .main-content { flex: 1; min-width: 0; }
-
-        /* ── HERO ── */
-        .hero {
-            position: relative;
-            height: 260px;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-        }
-
-        .hero img.hero-bg {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-        }
-
-        .hero-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(20,83,45,0.78));
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .hero-overlay h1 {
-            font-size: 1.7rem;
-            color: #fff;
-            margin-bottom: 0.4rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.6);
-        }
-
-        .hero-overlay h1 span { color: #4ade80; }
-
-        .hero-overlay p {
-            color: #e5e7eb;
-            font-size: 0.88rem;
-            margin-bottom: 1rem;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-        }
-
-        .btn-shop {
-            background: #16a34a;
-            color: #fff;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 7px;
-            font-size: 0.88rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            letter-spacing: 0.5px;
-            transition: background 0.2s;
-        }
-
-        .btn-shop:hover { background: #14532d; }
-
-        /* ── SECTION HEADER ── */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .section-header h2 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #14532d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .see-all {
-            font-size: 0.83rem;
-            color: #16a34a;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .see-all:hover { text-decoration: underline; }
-
-        /* ── PRODUCT GRID ── */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .product-card {
-            background: #fff;
-            border-radius: 10px;
-            border: 1px solid #e5e7eb;
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-            cursor: pointer;
-        }
-
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 18px rgba(22,163,74,0.13);
-            border-color: #16a34a;
-        }
-
-        .product-img-placeholder {
-            width: 100%;
-            height: 140px;
-            background: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .product-img-placeholder svg {
-            width: 38px;
-            height: 38px;
-            stroke: #d1d5db;
-            fill: none;
-            stroke-width: 1.5;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        .product-info { padding: 0.7rem; }
-
-        .product-name {
-            height: 12px;
-            background: #f3f4f6;
-            border-radius: 4px;
-            margin-bottom: 6px;
-            width: 80%;
-        }
-
-        .product-price {
-            height: 11px;
-            background: #dcfce7;
-            border-radius: 4px;
-            width: 50%;
-        }
-
-        .product-btn {
-            display: block;
-            margin: 0 0.7rem 0.7rem;
-            background: #16a34a;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 7px;
-            font-size: 0.76rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            width: calc(100% - 1.4rem);
-            transition: background 0.2s;
-        }
-
-        .product-btn:hover { background: #14532d; }
-
-        /* ── FOOTER ── */
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            font-size: 0.8rem;
-            color: #9ca3af;
-            margin-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- NAVBAR -->
-    <nav>
-        <a href="/WST-QuickCart/public/user/index.php" class="nav-brand">QuickCart</a>
-
-        
-
-        <div class="nav-right">
-            <div class="search-wrapper">
-                <input type="text" placeholder="Search products...">
-                <button>&#128269;</button>
+      <!-- Stat Cards -->
+      <div class="row g-3 mb-2">
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-bag-check"></i></div>
+            <div>
+              <div class="stat-label">Total Orders</div>
+              <div class="stat-value"><?= $totalOrders ?></div>
             </div>
-
-            <a href="#" class="nav-icon-btn">
-                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <?php echo htmlspecialchars($_SESSION['authUser']['username']); ?>
-            </a>
-
-            <a href="#" class="nav-icon-btn">
-                <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                <span class="cart-badge">0</span>
-                Cart
-            </a>
-
-            <form action="/WST-QuickCart/app/controllers/userController.php" method="POST">
-                <button type="submit" name="logoutButton" class="btn-logout">Logout</button>
-            </form>
+          </div>
         </div>
-    </nav>
-
-    <!-- PAGE WRAPPER -->
-    <div class="page-wrapper">
-
-        <!-- SIDEBAR -->
-        <aside class="sidebar">
-            <div class="sidebar-title">Categories</div>
-            <ul class="sidebar-list">
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=beverages">
-            <div class="cat-icon-sm" style="background:#dbeafe;">🥤</div>
-            Beverages
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=snacks">
-            <div class="cat-icon-sm" style="background:#fef9c3;">🍿</div>
-            Snacks
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=readytoeat">
-            <div class="cat-icon-sm" style="background:#fce7f3;">🍱</div>
-            Ready-to-Eat
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=frozen">
-            <div class="cat-icon-sm" style="background:#e0f2fe;">🧊</div>
-            Frozen & Refrigerated
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=pantry">
-            <div class="cat-icon-sm" style="background:#dcfce7;">🥫</div>
-            Pantry Essentials
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=personalcare">
-            <div class="cat-icon-sm" style="background:#fae8ff;">🧴</div>
-            Personal Care
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=household">
-            <div class="cat-icon-sm" style="background:#f1f5f9;">🧹</div>
-            Household Items
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=tobacco">
-            <div class="cat-icon-sm" style="background:#fee2e2;">🍺</div>
-            Tobacco & Alcohol
-            <span class="badge-18">18+</span>
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=medicine">
-            <div class="cat-icon-sm" style="background:#d1fae5;">💊</div>
-            OTC Medicine
-        </a>
-    </li>
-    <li>
-        <a href="/WST-QuickCart/public/user/categories.php?cat=misc">
-            <div class="cat-icon-sm" style="background:#ede9fe;">📱</div>
-            Misc & Services
-        </a>
-    </li>
-</ul>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <div class="main-content">
-
-            <!-- HERO -->
-            <div class="hero">
-                <img class="hero-bg" src="/WST-QuickCart/public/user/assets/img/hero-bg.jpg" alt="Hero Background">
-                <div class="hero-overlay">
-                    <h1>Shop Smart, Shop Fast, <span>Shop QuickCart</span></h1>
-                    <p>Everything you need in just a few clicks.</p>
-                    <a href="#" class="btn-shop">SHOP ALL PRODUCTS</a>
-                </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+              <div class="stat-label">Pending</div>
+              <div class="stat-value"><?= $pendingOrders ?></div>
             </div>
-
-            <!-- FEATURED PRODUCTS -->
-            <div class="section-header">
-                <h2>Featured Products</h2>
-                <a href="#" class="see-all">See All &rarr;</a>
-            </div>
-
-            <div class="product-grid">
-                <?php for ($i = 0; $i < 12; $i++): ?>
-                <div class="product-card">
-                    <div class="product-img-placeholder">
-                        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5"/>
-                            <polyline points="21 15 16 10 5 21"/>
-                        </svg>
-                    </div>
-                    <div class="product-info">
-                        <div class="product-name"></div>
-                        <div class="product-price"></div>
-                    </div>
-                    <button class="product-btn">Add to Cart</button>
-                </div>
-                <?php endfor; ?>
-            </div>
-
+          </div>
         </div>
-    </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-cash-coin"></i></div>
+            <div>
+              <div class="stat-label">Total Spent</div>
+              <div class="stat-value" style="font-size:16px;">₱<?= number_format($totalSpent, 0) ?></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-cart3"></i></div>
+            <div>
+              <div class="stat-label">In Cart</div>
+              <div class="stat-value"><?= $cartCount ?></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- FOOTER -->
-    <footer>
-        &copy; <?php echo date('Y'); ?> QuickCart. All rights reserved.
-    </footer>
+      <!-- Featured Products -->
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Featured Products <span>| Latest Arrivals</span></h5>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11 "></script>
-    <?php flashMessage(); ?>
+          <div class="row g-3">
+            <?php if (mysqli_num_rows($featuredResult) === 0): ?>
+              <div class="col-12">
+                <div class="empty-state">
+                  <i class="bi bi-bag-x"></i>
+                  <h5>No products yet</h5>
+                  <p>Check back soon – we're stocking up!</p>
+                </div>
+              </div>
+            <?php else: ?>
+              <?php while ($product = mysqli_fetch_assoc($featuredResult)): ?>
+                <div class="col-6 col-md-4 col-xl-3">
+                  <div class="product-card">
+                    <div class="product-img-wrap">
+                      <?php if ($product['stock'] <= 5): ?>
+                        <span class="product-badge bg-warning text-dark">Low Stock</span>
+                      <?php endif; ?>
+                      <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                        alt="<?= htmlspecialchars($product['name']) ?>"
+                        onerror="this.src='assets/img/product-placeholder.png'">
+                    </div>
+                    <div class="product-body">
+                      <div class="product-category">
+                        <?= htmlspecialchars($product['categoryName'] ?? 'General') ?>
+                      </div>
+                      <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+                      <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
+                      <form action="../../app/controllers/cartController.php" method="POST">
+                        <input type="hidden" name="productId" value="<?= (int) $product['productId'] ?>">
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" name="addToCart" class="btn-add-cart">
+                          <i class="bi bi-cart-plus me-1"></i> Add to Cart
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              <?php endwhile; ?>
+            <?php endif; ?>
+          </div>
 
-</body>
-</html>
+          <div class="text-center mt-3">
+            <a href="shop" class="btn btn-outline-primary">
+              <i class="bi bi-grid me-1"></i> View All Products
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Recent Orders <span>| Latest</span></h5>
+
+          <?php if ($recentOrders->num_rows === 0): ?>
+            <div class="empty-state">
+              <i class="bi bi-bag-x"></i>
+              <h5>No orders yet</h5>
+              <p>Start shopping and your orders will appear here.</p>
+              <a href="shop" class="btn btn-primary mt-2">Browse Products</a>
+            </div>
+          <?php else: ?>
+            <div class="table-responsive">
+              <table class="table table-borderless orders-table align-middle">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php while ($order = $recentOrders->fetch_assoc()):
+                    $s = $order['status'];
+                    $badgeMap = [
+                      'pending' => 'bg-warning text-dark',
+                      'confirmed' => 'bg-primary',
+                      'processing' => 'bg-info text-dark',
+                      'shipped' => 'bg-dark',
+                      'delivered' => 'bg-success',
+                      'cancelled' => 'bg-danger',
+                      'refunded' => 'bg-secondary',
+                    ];
+                    $badge = $badgeMap[$s] ?? 'bg-secondary';
+                    ?>
+                    <tr>
+                      <td class="fw-bold"><?= htmlspecialchars($order['orderNumber']) ?></td>
+                      <td>₱<?= number_format($order['totalAmount'], 2) ?></td>
+                      <td><span class="badge <?= $badge ?>"><?= ucfirst($s) ?></span></td>
+                      <td class="text-muted small">
+                        <?= date("M d, Y", strtotime($order['orderedAt'])) ?>
+                      </td>
+                      <td>
+                        <a href="order-detail?id=<?= (int) $order['orderId'] ?>"
+                          class="btn btn-sm btn-outline-primary">View</a>
+                      </td>
+                    </tr>
+                  <?php endwhile; ?>
+                </tbody>
+              </table>
+            </div>
+            <div class="text-end">
+              <a href="orders" class="btn btn-sm btn-outline-primary">View All Orders</a>
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+
+    </div><!-- End Left Column -->
+
+    <!-- ========= RIGHT COLUMN ========= -->
+    <div class="col-lg-4">
+
+      <!-- Account Summary Card -->
+      <?php
+      $displayName = htmlspecialchars($fullName);
+      $nameParts = explode(' ', trim($fullName));
+      $displayInitials = strtoupper(substr($nameParts[0], 0, 1) . substr(end($nameParts), 0, 1)) ?: 'U';
+      $displayUsername = htmlspecialchars($_SESSION['authUser']['username'] ?? '');
+      ?>
+      <div class="card">
+        <div class="card-body text-center pt-4">
+          <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:72px;height:72px;background:#005d21;font-size:26px;font-weight:700;
+                      color:#fff;font-family:'Nunito',sans-serif;">
+            <?= $displayInitials ?>
+          </div>
+          <h5 class="fw-bold mb-0" style="color:#003d16;"><?= $displayName ?></h5>
+          <p class="text-muted small mb-3">@<?= $displayUsername ?></p>
+          <a href="accounts" class="btn btn-outline-primary btn-sm w-100">
+            <i class="bi bi-person-gear me-1"></i> Edit Profile
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Quick Actions</h5>
+          <div class="d-grid gap-2">
+            <a href="shop" class="btn btn-primary">
+              <i class="bi bi-shop me-1"></i> Browse Products
+            </a>
+            <a href="cart" class="btn btn-outline-primary">
+              <i class="bi bi-cart3 me-1"></i> View Cart
+              <?php if ($cartCount > 0): ?>
+                <span class="badge bg-danger ms-1"><?= $cartCount ?></span>
+              <?php endif; ?>
+            </a>
+            <a href="orders" class="btn btn-outline-primary">
+              <i class="bi bi-bag-check me-1"></i> My Orders
+            </a>
+            <a href="track" class="btn btn-outline-primary">
+              <i class="bi bi-truck me-1"></i> Track an Order
+            </a>
+            <a href="tickets" class="btn btn-outline-primary">
+              <i class="bi bi-headset me-1"></i> Get Support
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Status Legend -->
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Order Statuses</h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Pending</span>
+              <span class="badge bg-warning text-dark">Awaiting confirmation</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Confirmed</span>
+              <span class="badge bg-primary">Accepted</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Processing</span>
+              <span class="badge bg-info text-dark">Being packed</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Shipped</span>
+              <span class="badge bg-dark">On the way</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Delivered</span>
+              <span class="badge bg-success">Completed</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Cancelled</span>
+              <span class="badge bg-danger">Cancelled</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="small">Refunded</span>
+              <span class="badge bg-secondary">Refunded</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- End Right Column -->
+
+  </div>
+</section>
+
+<?php include('./includes/footer.php'); ?>

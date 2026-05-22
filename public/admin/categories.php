@@ -155,7 +155,7 @@ $parentListResult = mysqli_query($conn, $parentListQuery);
                   <td><?= $row['parentName'] ? htmlspecialchars($row['parentName']) : "None" ?></td>
                   <td><?= date("M d, Y", strtotime($row['createdAt'])) ?></td>
                   <td>
-                    <a href="categories-edit.php?id=<?= $row['categoryId'] ?>" class="btn btn-sm btn-primary">
+                    <a href="categoriesEdit.php?id=<?= $row['categoryId'] ?>" class="btn btn-sm btn-primary">
                       <i class="bi bi-pencil"></i>
                     </a>
                     <a href="categories.php?delete=<?= $row['categoryId'] ?>" 

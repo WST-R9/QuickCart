@@ -317,3 +317,12 @@
   }
 
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+  const sidebar = document.getElementById('sidebar-nav');
+  if (!sidebar) return;
+  const activeLink = sidebar.querySelector('.nav-link:not(.collapsed)');
+  if (activeLink) {
+    activeLink.scrollIntoView({ block: 'center', behavior: 'instant' });
+  }
+});

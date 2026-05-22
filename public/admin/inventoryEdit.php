@@ -48,12 +48,12 @@ if (isset($_POST['updateProduct'])) {
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
 
         if (!in_array($ext, $allowed)) {
-            echo "<script>alert('Invalid image type.'); window.location.href='inventory-edit.php?id=$productId';</script>";
+            echo "<script>alert('Invalid image type.'); window.location.href='inventoryEdit.php?id=$productId';</script>";
             exit;
         }
 
         if ($_FILES['productImage']['size'] > 2 * 1024 * 1024) {
-            echo "<script>alert('Image exceeds 2MB limit.'); window.location.href='inventory-edit.php?id=$productId';</script>";
+            echo "<script>alert('Image exceeds 2MB limit.'); window.location.href='inventoryEdit.php?id=$productId';</script>";
             exit;
         }
 

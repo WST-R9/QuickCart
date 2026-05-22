@@ -1,29 +1,26 @@
 <?php
 include_once("../../app/middleware/admin.php");
-include('./includes/header.php');
-include('./includes/topbar.php');
-include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
 
-// Get logged-in admin's userId from session
+// Get logged-in user's userId from session
 $userId = $_SESSION['user_id'];
 
 // -----------------------------------------------
 // UPDATE PROFILE INFO
 // -----------------------------------------------
 if (isset($_POST['updateProfile'])) {
-    $firstName   = mysqli_real_escape_string($conn, trim($_POST['firstName']));
-    $middleName  = mysqli_real_escape_string($conn, trim($_POST['middleName']));
-    $lastName    = mysqli_real_escape_string($conn, trim($_POST['lastName']));
-    $birthday    = trim($_POST['birthday']);
-    $gender      = trim($_POST['gender']);
+    $firstName = mysqli_real_escape_string($conn, trim($_POST['firstName']));
+    $middleName = mysqli_real_escape_string($conn, trim($_POST['middleName']));
+    $lastName = mysqli_real_escape_string($conn, trim($_POST['lastName']));
+    $birthday = trim($_POST['birthday']);
+    $gender = trim($_POST['gender']);
     $phoneNumber = trim($_POST['phoneNumber']);
     $emailAddress = mysqli_real_escape_string($conn, trim($_POST['emailAddress']));
 
     // Validate email
     if (!filter_var($emailAddress, FILTER_VALIDATE_EMAIL)) {
         $_SESSION['message'] = "Invalid email format.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
@@ -31,7 +28,7 @@ if (isset($_POST['updateProfile'])) {
     // Validate phone
     if (!preg_match('/^\d{10,15}$/', $phoneNumber)) {
         $_SESSION['message'] = "Phone number must be 10–15 digits only.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
@@ -44,7 +41,7 @@ if (isset($_POST['updateProfile'])) {
 
     if ($checkEmail->num_rows > 0) {
         $_SESSION['message'] = "Email address is already in use by another account.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
@@ -53,8 +50,16 @@ if (isset($_POST['updateProfile'])) {
     $updateProfile = $conn->prepare("UPDATE users 
         SET firstName=?, middleName=?, lastName=?, birthday=?, gender=?, phoneNumber=?, emailAddress=?
         WHERE userId=?");
-    $updateProfile->bind_param("sssssssi",
-        $firstName, $middleName, $lastName, $birthday, $gender, $phoneNumber, $emailAddress, $userId
+    $updateProfile->bind_param(
+        "sssssssi",
+        $firstName,
+        $middleName,
+        $lastName,
+        $birthday,
+        $gender,
+        $phoneNumber,
+        $emailAddress,
+        $userId
     );
     $updateProfile->execute();
     $updateProfile->close();
@@ -63,7 +68,7 @@ if (isset($_POST['updateProfile'])) {
     $_SESSION['authUser']['fullName'] = $firstName . ' ' . $lastName;
 
     $_SESSION['message'] = "Profile updated successfully.";
-    $_SESSION['code']    = "success";
+    $_SESSION['code'] = "success";
     header("Location: accounts.php");
     exit;
 }
@@ -73,7 +78,7 @@ if (isset($_POST['updateProfile'])) {
 // -----------------------------------------------
 if (isset($_POST['changePassword'])) {
     $currentPassword = $_POST['currentPassword'];
-    $newPassword     = $_POST['newPassword'];
+    $newPassword = $_POST['newPassword'];
     $confirmPassword = $_POST['confirmPassword'];
 
     // Fetch current password
@@ -87,21 +92,21 @@ if (isset($_POST['changePassword'])) {
     // NOTE: Plain-text check to match your existing system
     if ($currentPassword !== $storedPassword) {
         $_SESSION['message'] = "Current password is incorrect.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
 
     if (strlen($newPassword) < 6) {
         $_SESSION['message'] = "New password must be at least 6 characters.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
 
     if ($newPassword !== $confirmPassword) {
         $_SESSION['message'] = "New passwords do not match.";
-        $_SESSION['code']    = "error";
+        $_SESSION['code'] = "error";
         header("Location: accounts.php");
         exit;
     }
@@ -112,7 +117,7 @@ if (isset($_POST['changePassword'])) {
     $updatePass->close();
 
     $_SESSION['message'] = "Password changed successfully.";
-    $_SESSION['code']    = "success";
+    $_SESSION['code'] = "success";
     header("Location: accounts.php");
     exit;
 }
@@ -121,15 +126,15 @@ if (isset($_POST['changePassword'])) {
 // ADD ADDRESS
 // -----------------------------------------------
 if (isset($_POST['addAddress'])) {
-    $label         = mysqli_real_escape_string($conn, trim($_POST['label']));
+    $label = mysqli_real_escape_string($conn, trim($_POST['label']));
     $recipientName = mysqli_real_escape_string($conn, trim($_POST['recipientName']));
-    $phoneNumber   = trim($_POST['phoneNumber_addr']);
-    $street        = mysqli_real_escape_string($conn, trim($_POST['street']));
-    $barangay      = mysqli_real_escape_string($conn, trim($_POST['barangay']));
-    $city          = mysqli_real_escape_string($conn, trim($_POST['city']));
-    $province      = mysqli_real_escape_string($conn, trim($_POST['province']));
-    $zipCode       = trim($_POST['zipCode']);
-    $isDefault     = isset($_POST['isDefault']) ? 1 : 0;
+    $phoneNumber = trim($_POST['phoneNumber_addr']);
+    $street = mysqli_real_escape_string($conn, trim($_POST['street']));
+    $barangay = mysqli_real_escape_string($conn, trim($_POST['barangay']));
+    $city = mysqli_real_escape_string($conn, trim($_POST['city']));
+    $province = mysqli_real_escape_string($conn, trim($_POST['province']));
+    $zipCode = trim($_POST['zipCode']);
+    $isDefault = isset($_POST['isDefault']) ? 1 : 0;
 
     // If new address is default, unset others
     if ($isDefault) {
@@ -139,14 +144,24 @@ if (isset($_POST['addAddress'])) {
     $insertAddr = $conn->prepare("INSERT INTO addresses 
         (userId, label, recipientName, phoneNumber, street, barangay, city, province, zipCode, isDefault)
         VALUES (?,?,?,?,?,?,?,?,?,?)");
-    $insertAddr->bind_param("issssssssi",
-        $userId, $label, $recipientName, $phoneNumber, $street, $barangay, $city, $province, $zipCode, $isDefault
+    $insertAddr->bind_param(
+        "issssssssi",
+        $userId,
+        $label,
+        $recipientName,
+        $phoneNumber,
+        $street,
+        $barangay,
+        $city,
+        $province,
+        $zipCode,
+        $isDefault
     );
     $insertAddr->execute();
     $insertAddr->close();
 
     $_SESSION['message'] = "Address added successfully.";
-    $_SESSION['code']    = "success";
+    $_SESSION['code'] = "success";
     header("Location: accounts.php");
     exit;
 }
@@ -159,7 +174,7 @@ if (isset($_GET['deleteAddress'])) {
     $conn->query("DELETE FROM addresses WHERE addressId=$addressId AND userId=$userId");
 
     $_SESSION['message'] = "Address deleted.";
-    $_SESSION['code']    = "success";
+    $_SESSION['code'] = "success";
     header("Location: accounts.php");
     exit;
 }
@@ -173,23 +188,27 @@ if (isset($_GET['setDefault'])) {
     $conn->query("UPDATE addresses SET isDefault=1 WHERE addressId=$addressId AND userId=$userId");
 
     $_SESSION['message'] = "Default address updated.";
-    $_SESSION['code']    = "success";
+    $_SESSION['code'] = "success";
     header("Location: accounts.php");
     exit;
 }
 
 // -----------------------------------------------
-// FETCH ADMIN INFO
+// FETCH USER INFO
 // -----------------------------------------------
-$adminQuery  = $conn->prepare("SELECT * FROM users WHERE userId=?");
-$adminQuery->bind_param("i", $userId);
-$adminQuery->execute();
-$adminResult = $adminQuery->get_result();
-$admin       = $adminResult->fetch_assoc();
-$adminQuery->close();
+$userQuery = $conn->prepare("SELECT * FROM users WHERE userId=?");
+$userQuery->bind_param("i", $userId);
+$userQuery->execute();
+$userResult = $userQuery->get_result();
+$user = $userResult->fetch_assoc();
+$userQuery->close();
 
 // FETCH ADDRESSES
 $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId ORDER BY isDefault DESC, createdAt DESC");
+
+include('./includes/header.php');
+include('./includes/topbar.php');
+include('./includes/sidebar.php');
 ?>
 
 <div class="pagetitle">
@@ -219,53 +238,59 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                         <div class="row g-3">
 
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">First Name <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="firstName" class="form-control"
-                                       value="<?= htmlspecialchars($admin['firstName']) ?>" required>
+                                    value="<?= htmlspecialchars($user['firstName']) ?>" required>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Middle Name</label>
                                 <input type="text" name="middleName" class="form-control"
-                                       value="<?= htmlspecialchars($admin['middleName'] ?? '') ?>">
+                                    value="<?= htmlspecialchars($user['middleName'] ?? '') ?>">
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Last Name <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="lastName" class="form-control"
-                                       value="<?= htmlspecialchars($admin['lastName']) ?>" required>
+                                    value="<?= htmlspecialchars($user['lastName']) ?>" required>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Email Address <span
+                                        class="text-danger">*</span></label>
                                 <input type="email" name="emailAddress" class="form-control"
-                                       value="<?= htmlspecialchars($admin['emailAddress']) ?>" required>
+                                    value="<?= htmlspecialchars($user['emailAddress']) ?>" required>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Phone Number <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="phoneNumber" class="form-control"
-                                       value="<?= htmlspecialchars($admin['phoneNumber']) ?>" required>
+                                    value="<?= htmlspecialchars($user['phoneNumber']) ?>" required>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Birthday <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Birthday <span
+                                        class="text-danger">*</span></label>
                                 <input type="date" name="birthday" class="form-control"
-                                       value="<?= htmlspecialchars($admin['birthday']) ?>" required>
+                                    value="<?= htmlspecialchars($user['birthday']) ?>" required>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
                                 <select name="gender" class="form-select" required>
-                                    <option value="Male"   <?= ($admin['gender'] == 'Male')   ? 'selected' : '' ?>>Male</option>
-                                    <option value="Female" <?= ($admin['gender'] == 'Female') ? 'selected' : '' ?>>Female</option>
+                                    <option value="Male" <?= ($user['gender'] == 'Male') ? 'selected' : '' ?>>Male</option>
+                                    <option value="Female" <?= ($user['gender'] == 'Female') ? 'selected' : '' ?>>Female
+                                    </option>
                                 </select>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label fw-semibold text-muted">Username</label>
                                 <input type="text" class="form-control bg-light"
-                                       value="<?= htmlspecialchars($admin['username']) ?>" disabled>
+                                    value="<?= htmlspecialchars($user['username']) ?>" disabled>
                                 <small class="text-muted">Username cannot be changed.</small>
                             </div>
 
@@ -290,22 +315,26 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                     <form method="POST" class="row g-3">
 
                         <div class="col-md-12">
-                            <label class="form-label fw-semibold">Current Password <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Current Password <span
+                                    class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" name="currentPassword" id="currentPassword"
-                                       class="form-control" required>
-                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="currentPassword">
+                                <input type="password" name="currentPassword" id="currentPassword" class="form-control"
+                                    required>
+                                <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="currentPassword">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">New Password <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">New Password <span
+                                    class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" name="newPassword" id="newPassword"
-                                       class="form-control" required minlength="6">
-                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="newPassword">
+                                <input type="password" name="newPassword" id="newPassword" class="form-control" required
+                                    minlength="6">
+                                <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="newPassword">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
@@ -313,11 +342,13 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Confirm New Password <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Confirm New Password <span
+                                    class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" name="confirmPassword" id="confirmPassword"
-                                       class="form-control" required>
-                                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="confirmPassword">
+                                <input type="password" name="confirmPassword" id="confirmPassword" class="form-control"
+                                    required>
+                                <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="confirmPassword">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
@@ -355,10 +386,13 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                                         <?php endif; ?>
 
                                         <p class="mb-1">
-                                            <span class="badge bg-secondary"><?= htmlspecialchars($addr['label'] ?? 'Address') ?></span>
+                                            <span
+                                                class="badge bg-secondary"><?= htmlspecialchars($addr['label'] ?? 'Address') ?></span>
                                         </p>
                                         <p class="mb-1 fw-semibold"><?= htmlspecialchars($addr['recipientName']) ?></p>
-                                        <p class="mb-1 text-muted small"><i class="bi bi-telephone me-1"></i><?= htmlspecialchars($addr['phoneNumber']) ?></p>
+                                        <p class="mb-1 text-muted small"><i
+                                                class="bi bi-telephone me-1"></i><?= htmlspecialchars($addr['phoneNumber']) ?>
+                                        </p>
                                         <p class="mb-2 text-muted small">
                                             <i class="bi bi-geo me-1"></i>
                                             <?= htmlspecialchars($addr['street']) ?>,
@@ -371,14 +405,14 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                                         <div class="d-flex gap-2 flex-wrap">
                                             <?php if (!$addr['isDefault']): ?>
                                                 <a href="accounts.php?setDefault=<?= $addr['addressId'] ?>"
-                                                   class="btn btn-sm btn-outline-success">
+                                                    class="btn btn-sm btn-outline-success">
                                                     <i class="bi bi-star me-1"></i>Set Default
                                                 </a>
                                             <?php endif; ?>
 
                                             <a href="accounts.php?deleteAddress=<?= $addr['addressId'] ?>"
-                                               onclick="return confirm('Delete this address?');"
-                                               class="btn btn-sm btn-outline-danger">
+                                                onclick="return confirm('Delete this address?');"
+                                                class="btn btn-sm btn-outline-danger">
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                         </div>
@@ -399,20 +433,23 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
 
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Label</label>
-                                <input type="text" name="label" class="form-control"
-                                       placeholder="e.g. Home, Office" value="Home">
+                                <input type="text" name="label" class="form-control" placeholder="e.g. Home, Office"
+                                    value="Home">
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Recipient Name <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Recipient Name <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="recipientName" class="form-control"
-                                       value="<?= htmlspecialchars($admin['firstName'] . ' ' . $admin['lastName']) ?>" required>
+                                    value="<?= htmlspecialchars($user['firstName'] . ' ' . $user['lastName']) ?>"
+                                    required>
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Phone Number <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="phoneNumber_addr" class="form-control"
-                                       value="<?= htmlspecialchars($admin['phoneNumber']) ?>" required>
+                                    value="<?= htmlspecialchars($user['phoneNumber']) ?>" required>
                             </div>
 
                             <div class="col-md-6">
@@ -421,7 +458,8 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold">Barangay <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Barangay <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="barangay" class="form-control" required>
                             </div>
 
@@ -471,42 +509,43 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                 <div class="card-body">
                     <div class="mb-3">
                         <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center"
-                             style="width:80px;height:80px;">
+                            style="width:80px;height:80px;">
                             <span style="font-size:2rem;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;">
-                                <?= strtoupper(substr($admin['firstName'], 0, 1) . substr($admin['lastName'], 0, 1)) ?>
+                                <?= strtoupper(substr($user['firstName'], 0, 1) . substr($user['lastName'], 0, 1)) ?>
                             </span>
                         </div>
                     </div>
                     <h5 class="fw-bold mb-0">
-                        <?= htmlspecialchars($admin['firstName'] . ' ' . $admin['lastName']) ?>
+                        <?= htmlspecialchars($user['firstName'] . ' ' . $user['lastName']) ?>
                     </h5>
-                    <p class="text-muted mb-1 small">@<?= htmlspecialchars($admin['username']) ?></p>
-                    <span class="badge bg-success mb-3">
-                        <i class="bi bi-shield-check me-1"></i>Administrator
+                    <p class="text-muted mb-1 small">@<?= htmlspecialchars($user['username']) ?></p>
+                    <span class="badge <?= $badgeClass ?> mb-3">
+                        <i class="bi <?= $badgeIcon ?> me-1"></i>
+                        <?= $badgeLabel ?>
                     </span>
 
                     <ul class="list-group list-group-flush text-start">
                         <li class="list-group-item d-flex justify-content-between align-items-start px-0">
                             <span class="text-muted small"><i class="bi bi-envelope me-2"></i>Email</span>
                             <span class="small text-truncate ms-2" style="max-width:160px;">
-                                <?= htmlspecialchars($admin['emailAddress']) ?>
+                                <?= htmlspecialchars($user['emailAddress']) ?>
                             </span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted small"><i class="bi bi-telephone me-2"></i>Phone</span>
-                            <span class="small"><?= htmlspecialchars($admin['phoneNumber']) ?></span>
+                            <span class="small"><?= htmlspecialchars($user['phoneNumber']) ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted small"><i class="bi bi-gender-ambiguous me-2"></i>Gender</span>
-                            <span class="small"><?= htmlspecialchars($admin['gender']) ?></span>
+                            <span class="small"><?= htmlspecialchars($user['gender']) ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted small"><i class="bi bi-calendar me-2"></i>Birthday</span>
-                            <span class="small"><?= date("M d, Y", strtotime($admin['birthday'])) ?></span>
+                            <span class="small"><?= date("M d, Y", strtotime($user['birthday'])) ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                             <span class="text-muted small"><i class="bi bi-clock me-2"></i>Member Since</span>
-                            <span class="small"><?= date("M d, Y", strtotime($admin['dateCreated'])) ?></span>
+                            <span class="small"><?= date("M d, Y", strtotime($user['dateCreated'])) ?></span>
                         </li>
                     </ul>
                 </div>
@@ -545,10 +584,10 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
                         <i class="bi bi-exclamation-triangle me-1"></i> Session
                     </h5>
                     <p class="text-muted small mb-3">
-                        You are currently logged in as <strong><?= htmlspecialchars($admin['username']) ?></strong>.
+                        You are currently logged in as <strong><?= htmlspecialchars($user['username']) ?></strong>.
                         Click below to sign out securely.
                     </p>
-                    <form action="../../app/controllers/adminController.php" method="post">
+                    <form action="../../app/controllers/userController.php" method="post">
                         <button type="submit" name="logoutButton" class="btn btn-outline-danger w-100">
                             <i class="bi bi-box-arrow-right me-1"></i> Sign Out
                         </button>
@@ -563,21 +602,21 @@ $addrResult = mysqli_query($conn, "SELECT * FROM addresses WHERE userId=$userId 
 
 <!-- Password Toggle Script -->
 <script>
-document.querySelectorAll('.toggle-pw').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const targetId = this.getAttribute('data-target');
-        const input = document.getElementById(targetId);
-        const icon = this.querySelector('i');
+    document.querySelectorAll('.toggle-pw').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
 
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('bi-eye', 'bi-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('bi-eye-slash', 'bi-eye');
-        }
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        });
     });
-});
 </script>
 
 <?php include('./includes/footer.php'); ?>

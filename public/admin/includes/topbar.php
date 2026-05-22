@@ -1,4 +1,13 @@
-<!-- ======= Header ======= -->
+<!-- ======= Header/Topbar ======= -->
+<?php
+$role = $_SESSION['userRole'] ?? 'customer';
+
+$roleBadge = match(strtolower($role)) {
+  'admin'    => ['bg-danger',  'bi-shield-lock',  'Admin'],
+  default    => ['bg-success', 'bi-shield-check', 'Customer'],
+};
+[$badgeClass, $badgeIcon, $badgeLabel] = $roleBadge;
+?>
 <header id="header" class="header fixed-top d-flex align-items-center">
 
   <div class="d-flex align-items-center justify-content-between">
@@ -18,13 +27,6 @@
 
   <nav class="header-nav ms-auto">
     <ul class="d-flex align-items-center">
-
-      <!-- Mobile Search Toggle -->
-      <li class="nav-item d-block d-lg-none">
-        <a class="nav-link nav-icon search-bar-toggle" href="#">
-          <i class="bi bi-search"></i>
-        </a>
-      </li>
 
       <!-- Profile Dropdown -->
       <li class="nav-item dropdown pe-3">
@@ -62,7 +64,7 @@
           <li>
             <a class="dropdown-item d-flex align-items-center" href="accounts">
               <i class="bi bi-person"></i>
-              <span>My Profile</span>
+              <span>My Account</span>
             </a>
           </li>
 
@@ -83,4 +85,4 @@
     </ul>
   </nav><!-- End Icons Navigation -->
 
-</header><!-- End Header -->
+</header><!-- End Header/Topbar -->
