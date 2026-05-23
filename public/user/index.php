@@ -274,7 +274,7 @@ $wStmt->close();
                         <?= date("M d, Y", strtotime($order['orderedAt'])) ?>
                       </td>
                       <td>
-                        <a href="order-detail?id=<?= (int) $order['orderId'] ?>"
+                        <a href="orderView?id=<?= (int) $order['orderId'] ?>"
                           class="btn btn-sm btn-outline-primary">View</a>
                       </td>
                     </tr>

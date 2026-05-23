@@ -9,10 +9,10 @@ if (!isset($_SESSION['authUser'])) {
 
 $userId = $_SESSION['authUser']['userId'] ?? 0;
 
-// Helper: is this an AJAX request?
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' ||
-          !empty($_POST['ajax']);
+$isAjax = (
+    !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+) || !empty($_POST['ajax']);
 
 if (isset($_POST['addToCart'])) {
     $productId = (int) $_POST['productId'];
@@ -23,7 +23,7 @@ if (isset($_POST['addToCart'])) {
     $result = $check->get_result();
 
     if ($result->num_rows > 0) {
-        $row    = $result->fetch_assoc();
+        $row = $result->fetch_assoc();
         $newQty = $row['quantity'] + 1;
         $update = $conn->prepare("UPDATE cart SET quantity = ? WHERE cartId = ?");
         $update->bind_param("ii", $newQty, $row['cartId']);
@@ -32,6 +32,19 @@ if (isset($_POST['addToCart'])) {
         $insert = $conn->prepare("INSERT INTO cart (userId, productId, quantity) VALUES (?, ?, 1)");
         $insert->bind_param("ii", $userId, $productId);
         $insert->execute();
+    }
+
+    if ($isAjax) {
+        $countStmt = $conn->prepare("SELECT IFNULL(SUM(quantity), 0) AS total FROM cart WHERE userId = ?");
+        $countStmt->bind_param("i", $userId);
+        $countStmt->execute();
+        $cartTotal = (int) $countStmt->get_result()->fetch_assoc()['total'];
+        $countStmt->close();
+
+        ob_clean(); // discard any accidental output before JSON
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'cartCount' => $cartTotal]);
+        exit;
     }
 
     $_SESSION['flash'] = ['type' => 'success', 'message' => 'Item added to cart!'];
@@ -57,7 +70,7 @@ if (isset($_POST['removeItem']) || isset($_POST['removeFromCart'])) {
 
 if (isset($_POST['updateQty'])) {
     $cartId = (int) $_POST['cartId'];
-    $qty    = (int) $_POST['quantity'];
+    $qty = (int) $_POST['quantity'];
 
     if ($qty <= 0) {
         $delete = $conn->prepare("DELETE FROM cart WHERE cartId = ? AND userId = ?");
