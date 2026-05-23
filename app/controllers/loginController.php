@@ -49,9 +49,10 @@ if (isset($_POST['loginButton'])) {
             $_SESSION['userRole'] = $data['role'];
 
             $_SESSION['authUser'] = [
-                'user_id' => $data['userId'],
+                'userId' => $data['userId'],
                 'fullName' => $data['firstName'] . ' ' . $data['lastName'],
                 'username' => $data['username'],
+                'role' => $data['role'],
             ];
 
             $_SESSION['message'] = "Welcome " . $data['firstName'] . " " . $data['lastName'];

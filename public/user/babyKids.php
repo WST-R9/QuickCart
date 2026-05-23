@@ -4,21 +4,10 @@ include_once("../../app/config/config.php");
 include('includes/header.php');
 include('includes/sidebar.php');
 include('includes/topbar.php');
-?>
 
-<body>
-    <div class="pagetitle">
-        <h1>Baby & Kids</h1>
-        <nav>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index">Home</a></li>
-                <li class="breadcrumb-item active">Baby & Kids</li>
-            </ol>
-        </nav>
-    </div>
-</body>
-</html>
+$catId    = 12;
+$catTitle = 'Baby & Kids';
+$catIcon  = 'ri-user-smile-line';
 
-<?php
+include('includes/categoryPage.php');
 include('includes/footer.php');
-?>

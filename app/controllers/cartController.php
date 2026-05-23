@@ -7,10 +7,15 @@ if (!isset($_SESSION['authUser'])) {
     exit;
 }
 
-$userId = $_SESSION['authUser']['user_id'];
+$userId = $_SESSION['authUser']['userId'] ?? 0;
+
+// Helper: is this an AJAX request?
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' ||
+          !empty($_POST['ajax']);
 
 if (isset($_POST['addToCart'])) {
-    $productId = intval($_POST['productId']);
+    $productId = (int) $_POST['productId'];
 
     $check = $conn->prepare("SELECT cartId, quantity FROM cart WHERE userId = ? AND productId = ?");
     $check->bind_param("ii", $userId, $productId);
@@ -18,7 +23,7 @@ if (isset($_POST['addToCart'])) {
     $result = $check->get_result();
 
     if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
+        $row    = $result->fetch_assoc();
         $newQty = $row['quantity'] + 1;
         $update = $conn->prepare("UPDATE cart SET quantity = ? WHERE cartId = ?");
         $update->bind_param("ii", $newQty, $row['cartId']);
@@ -34,11 +39,16 @@ if (isset($_POST['addToCart'])) {
     exit;
 }
 
-if (isset($_POST['removeFromCart'])) {
-    $cartId = intval($_POST['cartId']);
+if (isset($_POST['removeItem']) || isset($_POST['removeFromCart'])) {
+    $cartId = (int) ($_POST['cartId'] ?? 0);
     $delete = $conn->prepare("DELETE FROM cart WHERE cartId = ? AND userId = ?");
     $delete->bind_param("ii", $cartId, $userId);
     $delete->execute();
+
+    if ($isAjax) {
+        echo json_encode(['success' => true]);
+        exit;
+    }
 
     $_SESSION['flash'] = ['type' => 'success', 'message' => 'Item removed from cart.'];
     header('Location: /WST-QuickCart/public/user/cart.php');
@@ -46,8 +56,8 @@ if (isset($_POST['removeFromCart'])) {
 }
 
 if (isset($_POST['updateQty'])) {
-    $cartId = intval($_POST['cartId']);
-    $qty    = intval($_POST['quantity']);
+    $cartId = (int) $_POST['cartId'];
+    $qty    = (int) $_POST['quantity'];
 
     if ($qty <= 0) {
         $delete = $conn->prepare("DELETE FROM cart WHERE cartId = ? AND userId = ?");
@@ -57,6 +67,25 @@ if (isset($_POST['updateQty'])) {
         $update = $conn->prepare("UPDATE cart SET quantity = ? WHERE cartId = ? AND userId = ?");
         $update->bind_param("iii", $qty, $cartId, $userId);
         $update->execute();
+    }
+
+    if ($isAjax) {
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    header('Location: /WST-QuickCart/public/user/cart.php');
+    exit;
+}
+
+if (isset($_POST['clearCart'])) {
+    $delete = $conn->prepare("DELETE FROM cart WHERE userId = ?");
+    $delete->bind_param("i", $userId);
+    $delete->execute();
+
+    if ($isAjax) {
+        echo json_encode(['success' => true]);
+        exit;
     }
 
     header('Location: /WST-QuickCart/public/user/cart.php');

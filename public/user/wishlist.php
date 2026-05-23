@@ -5,64 +5,20 @@ include('includes/header.php');
 include('includes/sidebar.php');
 include('includes/topbar.php');
 
-$userId  = $_SESSION['authUser']['userId'] ?? 0;
-$success = '';
+$userId = $_SESSION['authUser']['userId'] ?? 0;
 
-// ----------------------------------------
-// HANDLE REMOVE FROM WISHLIST
-// ----------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['removeWishlist'])) {
-    $productId = (int)($_POST['productId'] ?? 0);
-    if ($productId > 0) {
-        $stmt = $conn->prepare("DELETE FROM wishlist WHERE userId = ? AND productId = ?");
-        $stmt->bind_param("ii", $userId, $productId);
-        $stmt->execute();
-        $stmt->close();
-        $success = 'Item removed from your wishlist.';
-    }
-}
-
-// ----------------------------------------
-// HANDLE MOVE TO CART
-// ----------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moveToCart'])) {
-    $productId = (int)($_POST['productId'] ?? 0);
-    if ($productId > 0) {
-        // Add to cart (or increment if exists)
-        $stmt = $conn->prepare(
-            "INSERT INTO cart (userId, productId, quantity)
-             VALUES (?, ?, 1)
-             ON DUPLICATE KEY UPDATE quantity = quantity + 1"
-        );
-        $stmt->bind_param("ii", $userId, $productId);
-        $stmt->execute();
-        $stmt->close();
-
-        // Remove from wishlist
-        $stmt = $conn->prepare("DELETE FROM wishlist WHERE userId = ? AND productId = ?");
-        $stmt->bind_param("ii", $userId, $productId);
-        $stmt->execute();
-        $stmt->close();
-
-        $success = 'Item moved to your cart!';
-    }
-}
-
-// ----------------------------------------
-// FETCH WISHLIST ITEMS
-// ----------------------------------------
-$stmt = $conn->prepare(
-    "SELECT w.wishlistId, p.productId, p.name, p.price, p.stock, p.imageUrl, p.status,
-            c.name AS categoryName
-     FROM wishlist w
-     JOIN products p ON w.productId = p.productId
-     LEFT JOIN categories c ON p.categoryId = c.categoryId
-     WHERE w.userId = ?
-     ORDER BY w.addedAt DESC"
-);
+$stmt = $conn->prepare("
+    SELECT w.wishlistId, p.productId, p.name, p.price, p.stock, p.imageUrl,
+           c.name AS categoryName
+    FROM wishlist w
+    JOIN products p ON w.productId = p.productId
+    LEFT JOIN categories c ON p.categoryId = c.categoryId
+    WHERE w.userId = ?
+    ORDER BY w.addedAt DESC
+");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
-$wishlistResult = $stmt->get_result();
+$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 ?>
 
@@ -78,98 +34,79 @@ $stmt->close();
 
 <section class="section">
 
-  <?php if ($success): ?>
-    <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
-      <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($success) ?>
-    </div>
-  <?php endif; ?>
-
-  <?php if ($wishlistResult->num_rows === 0): ?>
+  <?php if (empty($items)): ?>
     <div class="card">
       <div class="card-body">
         <div class="empty-state">
           <i class="bi bi-heart"></i>
           <h5>Your wishlist is empty</h5>
-          <p>Save products you love and come back to them anytime.</p>
+          <p>Save products you love and come back to them later.</p>
           <a href="allProducts" class="btn btn-primary mt-2">
-            <i class="bi bi-shop me-1"></i> Browse Products
+            <i class="bi bi-bag me-1"></i> Browse Products
           </a>
         </div>
       </div>
     </div>
-
   <?php else: ?>
-
-    <!-- Results meta -->
-    <div class="results-meta">
-      <strong><?= $wishlistResult->num_rows ?></strong>
-      item<?= $wishlistResult->num_rows !== 1 ? 's' : '' ?> saved
-    </div>
-
-    <div class="row g-3">
-      <?php while ($item = $wishlistResult->fetch_assoc()):
-        $outOfStock = $item['stock'] <= 0 || $item['status'] !== 'active';
-        $lowStock   = !$outOfStock && $item['stock'] <= 5;
-      ?>
-        <div class="col-6 col-md-4 col-xl-3 col-xxl-2">
-          <div class="product-card">
-            <div class="product-img-wrap">
-              <?php if ($outOfStock): ?>
-                <span class="bg-danger text-white product-badge">Out of Stock</span>
-              <?php elseif ($lowStock): ?>
-                <span class="bg-warning text-dark product-badge">Low Stock</span>
-              <?php endif; ?>
-              <img src="../uploads/products/<?= htmlspecialchars($item['imageUrl'] ?? '') ?>"
-                   alt="<?= htmlspecialchars($item['name']) ?>"
-                   onerror="this.src='assets/img/product-placeholder.png'"
-                   style="<?= $outOfStock ? 'opacity:.6;' : '' ?>">
-            </div>
-            <div class="product-body">
-              <div class="product-category">
-                <?= htmlspecialchars($item['categoryName'] ?? 'General') ?>
-              </div>
-              <div class="product-name"><?= htmlspecialchars($item['name']) ?></div>
-              <div class="product-price">₱<?= number_format($item['price'], 2) ?></div>
-              <div class="product-stock">
-                <i class="bi bi-box-seam me-1"></i>
-                <?= $outOfStock ? 'Out of stock' : $item['stock'].' in stock' ?>
-              </div>
-
-              <!-- Move to Cart -->
-              <?php if (!$outOfStock): ?>
-                <form action="" method="POST" class="mb-1">
-                  <input type="hidden" name="productId" value="<?= (int)$item['productId'] ?>">
-                  <button type="submit" name="moveToCart" class="btn-add-cart">
-                    <i class="bi bi-cart-plus me-1"></i> Move to Cart
-                  </button>
-                </form>
-              <?php else: ?>
-                <button class="btn-add-cart" disabled style="opacity:.5;cursor:not-allowed;">
-                  <i class="bi bi-cart-x me-1"></i> Unavailable
-                </button>
-              <?php endif; ?>
-
-              <!-- Remove from Wishlist -->
-              <form action="" method="POST">
-                <input type="hidden" name="productId" value="<?= (int)$item['productId'] ?>">
-                <button type="submit" name="removeWishlist"
-                        class="btn btn-sm btn-outline-danger w-100 mt-1"
-                        onclick="return confirm('Remove this item from your wishlist?')">
-                  <i class="bi bi-heart-break me-1"></i> Remove
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      <?php endwhile; ?>
-    </div>
-
-    <div class="text-center mt-4">
-      <a href="allProducts" class="btn btn-outline-primary">
-        <i class="bi bi-shop me-1"></i> Continue Shopping
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <p class="text-muted mb-0"><?= count($items) ?> saved item<?= count($items) !== 1 ? 's' : '' ?></p>
+      <a href="allProducts" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-bag me-1"></i> Continue Shopping
       </a>
     </div>
 
+    <div class="row g-3">
+      <?php foreach ($items as $product): ?>
+        <div class="col-6 col-md-4 col-xl-3 col-xxl-2">
+          <div class="product-card">
+            <div class="product-img-wrap">
+              <?php if ($product['stock'] <= 5 && $product['stock'] > 0): ?>
+                <span class="badge bg-warning text-dark product-badge">Low Stock</span>
+              <?php elseif ($product['stock'] === 0): ?>
+                <span class="badge bg-secondary product-badge">Out of Stock</span>
+              <?php endif; ?>
+
+              <!-- Remove from wishlist (filled heart) -->
+              <form action="../../app/controllers/wishlistController.php" method="POST"
+                    style="position:absolute; top:8px; right:8px; z-index:2;">
+                <input type="hidden" name="productId" value="<?= $product['productId'] ?>">
+                <button type="submit" name="removeFromWishlist"
+                        class="btn btn-sm btn-light rounded-circle"
+                        style="width:32px; height:32px; padding:0; border:none; background:rgba(255,255,255,0.9); box-shadow:0 1px 4px rgba(0,0,0,0.12);"
+                        title="Remove from wishlist">
+                  <i class="bi bi-heart-fill text-danger" style="font-size:13px;"></i>
+                </button>
+              </form>
+
+              <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                   alt="<?= htmlspecialchars($product['name']) ?>"
+                   onerror="this.src='assets/img/product-placeholder.png'">
+            </div>
+            <div class="product-body">
+              <div class="product-category"><?= htmlspecialchars($product['categoryName'] ?? 'General') ?></div>
+              <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+              <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
+              <div class="product-stock">
+                <i class="bi bi-box-seam me-1"></i><?= $product['stock'] ?> in stock
+              </div>
+              <?php if ($product['stock'] > 0): ?>
+                <form action="../../app/controllers/cartController.php" method="POST">
+                  <input type="hidden" name="productId" value="<?= (int) $product['productId'] ?>">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" name="addToCart" class="btn-add-cart">
+                    <i class="bi bi-cart-plus me-1"></i> Add to Cart
+                  </button>
+                </form>
+              <?php else: ?>
+                <button class="btn-add-cart" disabled style="opacity:0.5; cursor:not-allowed;">
+                  Out of Stock
+                </button>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
   <?php endif; ?>
 
 </section>

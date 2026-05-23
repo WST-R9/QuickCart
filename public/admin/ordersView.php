@@ -1,8 +1,5 @@
 <?php
 include_once("../../app/middleware/admin.php");
-include('./includes/header.php');
-include('./includes/topbar.php');
-include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
 include_once("../../app/helpers/activityLog.php");
 
@@ -178,6 +175,10 @@ if (isset($_POST['updateShippingStatus'])) {
     logActivity($conn, $_SESSION['user_id'], 'updated_shipping_status', 'orders', $orderId, $order['orderNumber'], "Shipping changed to $newShippingStatus");
     exit;
 }
+
+include('./includes/header.php');
+include('./includes/topbar.php');
+include('./includes/sidebar.php');
 
 // ORDER INFO
 $orderQuery = "SELECT 

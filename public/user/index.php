@@ -80,6 +80,18 @@ $catsResult = mysqli_query(
      WHERE parentId IS NULL
      ORDER BY name ASC"
 );
+
+// ----------------------------------------
+// WISHLIST IDs for heart state
+// ----------------------------------------
+$wishlistIds = [];
+$wStmt = $conn->prepare("SELECT productId FROM wishlist WHERE userId = ?");
+$wStmt->bind_param("i", $userId);
+$wStmt->execute();
+foreach ($wStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $w) {
+  $wishlistIds[] = $w['productId'];
+}
+$wStmt->close();
 ?>
 
 <div class="pagetitle">
@@ -162,7 +174,9 @@ $catsResult = mysqli_query(
                 </div>
               </div>
             <?php else: ?>
-              <?php while ($product = mysqli_fetch_assoc($featuredResult)): ?>
+              <?php while ($product = mysqli_fetch_assoc($featuredResult)):
+                $inWishlist = in_array($product['productId'], $wishlistIds);
+                ?>
                 <div class="col-6 col-md-4 col-xl-3">
                   <div class="product-card">
                     <div class="product-img-wrap">
@@ -179,13 +193,26 @@ $catsResult = mysqli_query(
                       </div>
                       <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
                       <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
-                      <form action="../../app/controllers/cartController.php" method="POST">
-                        <input type="hidden" name="productId" value="<?= (int) $product['productId'] ?>">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" name="addToCart" class="btn-add-cart">
-                          <i class="bi bi-cart-plus me-1"></i> Add to Cart
-                        </button>
-                      </form>
+                      <div class="d-flex gap-2 mt-2 align-items-stretch">
+                        <form action="../../app/controllers/cartController.php" method="POST" class="flex-grow-1">
+                          <input type="hidden" name="productId" value="<?= (int) $product['productId'] ?>">
+                          <input type="hidden" name="quantity" value="1">
+                          <button type="submit" name="addToCart" class="btn-add-cart w-100">
+                            Add to Cart
+                          </button>
+                        </form>
+                        <form action="../../app/controllers/wishlistController.php" method="POST"
+                          class="d-flex align-items-center">
+                          <input type="hidden" name="productId" value="<?= $product['productId'] ?>">
+                          <button type="submit" name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
+                            class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $inWishlist ? 'wishlisted' : '' ?>"
+                            style="width:36px; height:36px; padding:0; border:1px solid #dee2e6; flex-shrink:0;"
+                            title="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
+                            <i class="bi <?= $inWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-muted' ?>"
+                              style="font-size:13px;"></i>
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -194,7 +221,7 @@ $catsResult = mysqli_query(
           </div>
 
           <div class="text-center mt-3">
-            <a href="shop" class="btn btn-outline-primary">
+            <a href="allProducts" class="btn btn-outline-primary">
               <i class="bi bi-grid me-1"></i> View All Products
             </a>
           </div>
@@ -211,7 +238,7 @@ $catsResult = mysqli_query(
               <i class="bi bi-bag-x"></i>
               <h5>No orders yet</h5>
               <p>Start shopping and your orders will appear here.</p>
-              <a href="shop" class="btn btn-primary mt-2">Browse Products</a>
+              <a href="allProducts" class="btn btn-primary mt-2">Browse Products</a>
             </div>
           <?php else: ?>
             <div class="table-responsive">
@@ -276,8 +303,8 @@ $catsResult = mysqli_query(
       ?>
       <div class="card">
         <div class="card-body text-center pt-4">
-          <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:72px;height:72px;background:#005d21;font-size:26px;font-weight:700;
-                      color:#fff;font-family:'Nunito',sans-serif;">
+          <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:72px; height:72px; background:#005d21; font-size:26px; font-weight:700;
+                      color:#fff; font-family:'Nunito',sans-serif;">
             <?= $displayInitials ?>
           </div>
           <h5 class="fw-bold mb-0" style="color:#003d16;"><?= $displayName ?></h5>
@@ -293,7 +320,7 @@ $catsResult = mysqli_query(
         <div class="card-body">
           <h5 class="card-title">Quick Actions</h5>
           <div class="d-grid gap-2">
-            <a href="shop" class="btn btn-primary">
+            <a href="allProducts" class="btn btn-primary">
               <i class="bi bi-shop me-1"></i> Browse Products
             </a>
             <a href="cart" class="btn btn-outline-primary">

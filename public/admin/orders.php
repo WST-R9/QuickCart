@@ -1,8 +1,5 @@
 <?php
 include_once("../../app/middleware/admin.php");
-include('./includes/header.php');
-include('./includes/topbar.php');
-include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
 
 // Orders Query
@@ -21,6 +18,10 @@ LEFT JOIN payments p ON o.orderId = p.orderId
 ORDER BY o.orderedAt DESC";
 
 $ordersResult = mysqli_query($conn, $ordersQuery);
+
+include('./includes/header.php');
+include('./includes/topbar.php');
+include('./includes/sidebar.php');
 ?>
 
 <div class="pagetitle">
@@ -93,7 +94,7 @@ $ordersResult = mysqli_query($conn, $ordersQuery);
                   <td><?= date("M d, Y", strtotime($row['orderedAt'])) ?></td>
 
                   <td>
-                    <a href="order-view.php?id=<?= $row['orderId'] ?>" class="btn btn-sm btn-primary">
+                    <a href="ordersView.php?id=<?= $row['orderId'] ?>" class="btn btn-sm btn-primary">
                       <i class="bi bi-eye"></i> View
                     </a>
                   </td>

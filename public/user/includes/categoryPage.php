@@ -1,22 +1,18 @@
 <?php
-include_once("../../app/middleware/user.php");
-include_once("../../app/config/config.php");
-include('includes/header.php');
-include('includes/sidebar.php');
-include('includes/topbar.php');
+// categoryPage.php — included by each category page, expects $catId, $catTitle, $catIcon
 
 $userId = $_SESSION['authUser']['userId'] ?? 0;
 
 $search = trim($_GET['search'] ?? '');
-$sort = $_GET['sort'] ?? 'newest';
 $priceRange = $_GET['price'] ?? '';
+$sort = $_GET['sort'] ?? 'newest';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 12;
 $offset = ($page - 1) * $perPage;
 
-$where = "p.status = 'active' AND p.stock > 0";
-$params = [];
-$types = '';
+$where = "p.status = 'active' AND p.stock > 0 AND (p.categoryId = ? OR c.parentId = ?)";
+$params = [$catId, $catId];
+$types = 'ii';
 
 if ($search !== '') {
   $where .= " AND (p.name LIKE ? OR p.description LIKE ?)";
@@ -48,11 +44,20 @@ $orderBy = match ($sort) {
   default => 'p.createdAt DESC',
 };
 
+$priceLabels = [
+  'under50' => 'Under ₱50',
+  '50to200' => '₱50 – ₱200',
+  '200to500' => '₱200 – ₱500',
+  'above500' => '₱500+',
+];
+
 // Count
-$countSql = "SELECT COUNT(*) AS total FROM products p LEFT JOIN categories c ON p.categoryId = c.categoryId WHERE $where";
+$countSql = "SELECT COUNT(*) AS total
+             FROM products p
+             LEFT JOIN categories c ON p.categoryId = c.categoryId
+             WHERE $where";
 $stmt = $conn->prepare($countSql);
-if ($types)
-  $stmt->bind_param($types, ...$params);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $totalProducts = (int) $stmt->get_result()->fetch_assoc()['total'];
 $stmt->close();
@@ -65,39 +70,34 @@ $sql = "SELECT p.productId, p.name, p.price, p.stock, p.imageUrl,
         FROM products p
         LEFT JOIN categories c ON p.categoryId = c.categoryId
         WHERE $where
+        GROUP BY p.productId
         ORDER BY $orderBy
         LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
 $allParams = array_merge($params, [$perPage, $offset]);
-$allTypes = $types . 'ii';
-$stmt->bind_param($allTypes, ...$allParams);
+$stmt->bind_param($types . 'ii', ...$allParams);
 $stmt->execute();
 $productsResult = $stmt->get_result();
 
-// Wishlist product IDs for this user (to show filled heart if already wishlisted)
+// Wishlist IDs for heart state
 $wishlistIds = [];
 $wStmt = $conn->prepare("SELECT productId FROM wishlist WHERE userId = ?");
 $wStmt->bind_param("i", $userId);
 $wStmt->execute();
-$wRows = $wStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$wStmt->close();
-foreach ($wRows as $w)
+foreach ($wStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $w) {
   $wishlistIds[] = $w['productId'];
+}
+$wStmt->close();
 
-$priceLabels = [
-  'under50' => 'Under ₱50',
-  '50to200' => '₱50 – ₱200',
-  '200to500' => '₱200 – ₱500',
-  'above500' => '₱500+',
-];
+$currentPage = basename($_SERVER['PHP_SELF'], '.php');
 ?>
 
 <div class="pagetitle">
-  <h1>Browse Products</h1>
+  <h1><?= htmlspecialchars($catTitle) ?></h1>
   <nav>
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="index">Home</a></li>
-      <li class="breadcrumb-item active">Browse Products</li>
+      <li class="breadcrumb-item active"><?= htmlspecialchars($catTitle) ?></li>
     </ol>
   </nav>
 </div>
@@ -107,23 +107,29 @@ $priceLabels = [
   <!-- Filter bar -->
   <div class="d-flex align-items-center mb-3 px-3 py-2 bg-white rounded-3 border"
     style="border-color:#d4e8da !important; gap:0;">
+
     <div class="category-pills flex-grow-1" id="categoryPills" style="min-width:0;">
-      <a href="allProducts?sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+      <a href="<?= $currentPage ?>?sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
         class="pill <?= $priceRange === '' ? 'active' : '' ?>">All</a>
-      <a href="allProducts?price=under50&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+      <a href="<?= $currentPage ?>?price=under50&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
         class="pill <?= $priceRange === 'under50' ? 'active' : '' ?>">Under ₱50</a>
-      <a href="allProducts?price=50to200&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+      <a href="<?= $currentPage ?>?price=50to200&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
         class="pill <?= $priceRange === '50to200' ? 'active' : '' ?>">₱50 – ₱200</a>
-      <a href="allProducts?price=200to500&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+      <a href="<?= $currentPage ?>?price=200to500&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
         class="pill <?= $priceRange === '200to500' ? 'active' : '' ?>">₱200 – ₱500</a>
-      <a href="allProducts?price=above500&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+      <a href="<?= $currentPage ?>?price=above500&sort=<?= urlencode($sort) ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
         class="pill <?= $priceRange === 'above500' ? 'active' : '' ?>">₱500+</a>
     </div>
+
     <div class="flex-shrink-0 mx-3" style="width:1px; height:28px; background:#d4e8da;"></div>
+
     <form method="GET" action="" class="d-flex align-items-center gap-2 flex-shrink-0">
-      <?php if ($search): ?><input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>"><?php endif; ?>
-      <?php if ($priceRange): ?><input type="hidden" name="price"
-          value="<?= htmlspecialchars($priceRange) ?>"><?php endif; ?>
+      <?php if ($search): ?>
+        <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+      <?php endif; ?>
+      <?php if ($priceRange): ?>
+        <input type="hidden" name="price" value="<?= htmlspecialchars($priceRange) ?>">
+      <?php endif; ?>
       <span class="text-muted small fw-semibold text-nowrap">Sort by</span>
       <select name="sort" class="form-select form-select-sm border-0 fw-bold" style="width:auto; box-shadow:none;"
         onchange="this.form.submit()">
@@ -133,19 +139,21 @@ $priceLabels = [
         <option value="name_asc" <?= $sort === 'name_asc' ? 'selected' : '' ?>>Name: A → Z</option>
       </select>
       <?php if ($search || $priceRange || $sort !== 'newest'): ?>
-        <a href="allProducts" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Clear filters">
+        <a href="<?= $currentPage ?>" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Clear filters">
           <i class="bi bi-x-circle"></i>
         </a>
       <?php endif; ?>
     </form>
+
   </div>
 
   <!-- Results meta -->
   <div class="results-meta mb-3">
     Showing <strong><?= $totalProducts ?></strong> product<?= $totalProducts !== 1 ? 's' : '' ?>
     <?php if ($search): ?> for "<strong><?= htmlspecialchars($search) ?></strong>"<?php endif; ?>
-    <?php if ($priceRange && isset($priceLabels[$priceRange])): ?> in
-      <strong><?= $priceLabels[$priceRange] ?></strong><?php endif; ?>
+    <?php if ($priceRange && isset($priceLabels[$priceRange])): ?>
+      in <strong><?= $priceLabels[$priceRange] ?></strong>
+    <?php endif; ?>
   </div>
 
   <!-- Product Grid -->
@@ -156,8 +164,8 @@ $priceLabels = [
           <i class="bi bi-bag-x"></i>
           <h5>No products found</h5>
           <p>Try a different filter or search term.</p>
-          <a href="allProducts" class="btn btn-primary mt-2 d-inline-flex align-items-center">
-            <i class="bi bi-arrow-left me-1"></i> Back to All Products
+          <a href="<?= $currentPage ?>" class="btn btn-primary mt-2 d-inline-flex align-items-center">
+            <i class="bi bi-arrow-left me-1"></i> Back to <?= htmlspecialchars($catTitle) ?>
           </a>
         </div>
       </div>
@@ -166,16 +174,16 @@ $priceLabels = [
     <div class="row g-3">
       <?php while ($product = $productsResult->fetch_assoc()):
         $inWishlist = in_array($product['productId'], $wishlistIds);
-        ?>
+      ?>
         <div class="col-6 col-md-4 col-xl-3 col-xxl-2">
           <div class="product-card">
             <div class="product-img-wrap">
               <?php if ($product['stock'] <= 5): ?>
                 <span class="badge bg-warning text-dark product-badge">Low Stock</span>
               <?php endif; ?>
-
               <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.src='assets/img/product-placeholder.png'">
+                alt="<?= htmlspecialchars($product['name']) ?>"
+                onerror="this.src='assets/img/product-placeholder.png'">
             </div>
             <div class="product-body">
               <div class="product-category"><?= htmlspecialchars($product['categoryName'] ?? 'General') ?></div>
@@ -192,14 +200,16 @@ $priceLabels = [
                     Add to Cart
                   </button>
                 </form>
-                <form action="../../app/controllers/wishlistController.php" method="POST" class="d-flex align-items-center">
+                <form action="../../app/controllers/wishlistController.php" method="POST"
+                      class="d-flex align-items-center">
                   <input type="hidden" name="productId" value="<?= $product['productId'] ?>">
-                  <button type="submit" name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
-                    class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $inWishlist ? 'wishlisted' : '' ?>"
-                    style="width:36px; height:36px; padding:0; border:1px solid #dee2e6; flex-shrink:0;"
-                    title="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
+                  <button type="submit"
+                          name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
+                          class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $inWishlist ? 'wishlisted' : '' ?>"
+                          style="width:36px; height:36px; padding:0; border:1px solid #dee2e6; flex-shrink:0;"
+                          title="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
                     <i class="bi <?= $inWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-muted' ?>"
-                      style="font-size:13px;"></i>
+                       style="font-size:13px;"></i>
                   </button>
                 </form>
               </div>
@@ -223,11 +233,13 @@ $priceLabels = [
           $start = max(1, $page - 2);
           $end = min($totalPages, $page + 2);
           if ($start > 1): ?>
-            <li class="page-item"><a class="page-link"
+            <li class="page-item">
+              <a class="page-link"
                 href="?page=1&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>">1</a>
             </li>
             <?php if ($start > 2): ?>
-              <li class="page-item disabled"><span class="page-link">…</span></li><?php endif; ?>
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            <?php endif; ?>
           <?php endif; ?>
           <?php for ($i = $start; $i <= $end; $i++): ?>
             <li class="page-item <?= $i === $page ? 'active' : '' ?>">
@@ -237,8 +249,10 @@ $priceLabels = [
           <?php endfor; ?>
           <?php if ($end < $totalPages): ?>
             <?php if ($end < $totalPages - 1): ?>
-              <li class="page-item disabled"><span class="page-link">…</span></li><?php endif; ?>
-            <li class="page-item"><a class="page-link"
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            <?php endif; ?>
+            <li class="page-item">
+              <a class="page-link"
                 href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>"><?= $totalPages ?></a>
             </li>
           <?php endif; ?>
@@ -255,5 +269,3 @@ $priceLabels = [
   <?php endif; ?>
 
 </section>
-
-<?php include('includes/footer.php'); ?>

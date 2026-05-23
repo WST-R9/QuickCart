@@ -4,21 +4,10 @@ include_once("../../app/config/config.php");
 include('includes/header.php');
 include('includes/sidebar.php');
 include('includes/topbar.php');
-?>
 
-<body>
-    <div class="pagetitle">
-        <h1>Beverages</h1>
-        <nav>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index">Home</a></li>
-                <li class="breadcrumb-item active">Beverages</li>
-            </ol>
-        </nav>
-    </div>
-</body>
-</html>
+$catId    = 1;
+$catTitle = 'Beverages';
+$catIcon  = 'ri-cup-line';
 
-<?php
+include('includes/categoryPage.php');
 include('includes/footer.php');
-?>

@@ -1,0 +1,412 @@
+<?php
+include_once("../../app/middleware/user.php");
+include_once("../../app/config/config.php");
+
+$userId = $_SESSION['authUser']['userId'] ?? 0;
+$orderId = intval($_GET['id'] ?? 0);
+
+// ── Handle Cancel ──────────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancelOrder'])) {
+    $stmt = $conn->prepare("
+        UPDATE orders SET status = 'cancelled'
+        WHERE orderId = ? AND userId = ? AND status = 'pending'
+    ");
+    $stmt->bind_param('ii', $orderId, $userId);
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        $rows = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
+        while ($row = $rows->fetch_assoc()) {
+            $conn->query("UPDATE products SET stock = stock + {$row['quantity']} WHERE productId = {$row['productId']}");
+        }
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Order cancelled successfully.'];
+    } else {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Unable to cancel this order.'];
+    }
+    $stmt->close();
+    header("Location: orderView?id=$orderId");
+    exit;
+}
+
+// ── Handle Return (COD) ────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['returnOrder'])) {
+    $stmt = $conn->prepare("
+        UPDATE orders SET status = 'refunded'
+        WHERE orderId = ? AND userId = ? AND status = 'delivered'
+    ");
+    $stmt->bind_param('ii', $orderId, $userId);
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        $conn->query("UPDATE shipping SET status = 'returned' WHERE orderId = $orderId");
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Return request submitted successfully.'];
+    } else {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Unable to process return.'];
+    }
+    $stmt->close();
+    header("Location: orderView?id=$orderId");
+    exit;
+}
+
+// ── Handle Refund (Online Payment) ────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['refundOrder'])) {
+    $stmt = $conn->prepare("
+        UPDATE orders SET status = 'refunded'
+        WHERE orderId = ? AND userId = ? AND status = 'delivered'
+    ");
+    $stmt->bind_param('ii', $orderId, $userId);
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        $conn->query("UPDATE shipping SET status = 'returned' WHERE orderId = $orderId");
+        $conn->query("UPDATE payments SET status = 'refunded' WHERE orderId = $orderId");
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Refund request submitted successfully.'];
+    } else {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Unable to process refund.'];
+    }
+    $stmt->close();
+    header("Location: orderView?id=$orderId");
+    exit;
+}
+
+// ── Handle Order Again ─────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderAgain'])) {
+    $rows = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
+    $added = 0;
+
+    while ($item = $rows->fetch_assoc()) {
+        if (!$item['productId'])
+            continue;
+
+        $s = $conn->prepare("SELECT stock FROM products WHERE productId = ? AND status = 'active'");
+        $s->bind_param('i', $item['productId']);
+        $s->execute();
+        $product = $s->get_result()->fetch_assoc();
+        $s->close();
+
+        if (!$product || $product['stock'] < 1)
+            continue;
+
+        $qty = min($item['quantity'], $product['stock']);
+
+        $c = $conn->prepare("
+            INSERT INTO cart (userId, productId, quantity)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+        ");
+        $c->bind_param('iii', $userId, $item['productId'], $qty);
+        $c->execute();
+        $c->close();
+        $added++;
+    }
+
+    if ($added > 0) {
+        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Items added to cart. Review and place your order.'];
+        header("Location: checkout");
+    } else {
+        $_SESSION['flash'] = ['type' => 'warning', 'message' => 'No items could be added — they may be out of stock or unavailable.'];
+        header("Location: orderView?id=$orderId");
+    }
+    exit;
+}
+
+// ── Fetch Order Header ─────────────────────────────────────────────────────
+$stmt = $conn->prepare("
+    SELECT o.orderId, o.orderNumber, o.totalAmount, o.status, o.notes, o.orderedAt,
+           p.method        AS paymentMethod,
+           p.status        AS paymentStatus,
+           p.referenceNumber,
+           s.recipientName, s.phoneNumber,
+           s.street, s.barangay, s.city, s.province, s.zipCode,
+           s.courier, s.trackingNumber,
+           s.status        AS shippingStatus
+    FROM orders o
+    LEFT JOIN payments p ON o.orderId = p.orderId
+    LEFT JOIN shipping s ON o.orderId = s.orderId
+    WHERE o.orderId = ? AND o.userId = ?
+    LIMIT 1
+");
+$stmt->bind_param('ii', $orderId, $userId);
+$stmt->execute();
+$order = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$order) {
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Order not found.'];
+    header("Location: orders");
+    exit;
+}
+
+// ── Fetch Order Items ──────────────────────────────────────────────────────
+$stmt = $conn->prepare("
+    SELECT oi.orderItemId, oi.productName, oi.quantity, oi.unitPrice, oi.subtotal,
+           pr.imageUrl
+    FROM orderitems oi
+    LEFT JOIN products pr ON oi.productId = pr.productId
+    WHERE oi.orderId = ?
+");
+$stmt->bind_param('i', $orderId);
+$stmt->execute();
+$items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// ── Badge & Tracker ────────────────────────────────────────────────────────
+$badge = match ($order['status']) {
+    'pending' => 'bg-warning text-dark',
+    'confirmed' => 'bg-primary',
+    'processing' => 'bg-info text-dark',
+    'shipped' => 'bg-dark',
+    'delivered' => 'bg-success',
+    'cancelled' => 'bg-danger',
+    'refunded' => 'bg-secondary',
+    default => 'bg-secondary',
+};
+
+$progressSteps = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+$currentStepIdx = array_search($order['status'], $progressSteps);
+$showTracker = $currentStepIdx !== false;
+
+include('includes/header.php');
+include('includes/sidebar.php');
+include('includes/topbar.php');
+?>
+
+<div class="pagetitle">
+    <h1><?= htmlspecialchars($order['orderNumber']) ?></h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="index">Home</a></li>
+            <li class="breadcrumb-item"><a href="orders">My Orders</a></li>
+            <li class="breadcrumb-item active">Order Details</li>
+        </ol>
+    </nav>
+</div>
+
+<section class="section">
+
+    <!-- ── Status Tracker ── -->
+    <?php if ($showTracker): ?>
+        <div class="card mb-3">
+            <div class="card-body py-4">
+                <div class="order-tracker d-flex justify-content-between align-items-center position-relative px-2">
+                    <div class="tracker-line"></div>
+                    <?php foreach ($progressSteps as $i => $step):
+                        $done = $i < $currentStepIdx;
+                        $active = $i === $currentStepIdx;
+                        $icon = match ($step) {
+                            'pending' => 'bi-clock',
+                            'confirmed' => 'bi-check-circle',
+                            'processing' => 'bi-gear',
+                            'shipped' => 'bi-truck',
+                            'delivered' => 'bi-bag-check',
+                            default => 'bi-circle',
+                        };
+                        ?>
+                        <div class="tracker-step text-center <?= $done ? 'done' : ($active ? 'active' : '') ?>">
+                            <div class="tracker-icon mb-1">
+                                <i class="bi <?= $icon ?>"></i>
+                            </div>
+                            <small><?= ucfirst($step) ?></small>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+    <?php else: ?>
+        <div class="alert <?= $order['status'] === 'cancelled' ? 'alert-danger' : 'alert-secondary' ?> d-flex align-items-center mb-3"
+            role="alert">
+            <i
+                class="bi <?= $order['status'] === 'cancelled' ? 'bi-x-circle' : 'bi-arrow-counterclockwise' ?> me-2 fs-5"></i>
+            <div>This order has been <strong><?= ucfirst($order['status']) ?></strong>.</div>
+        </div>
+    <?php endif; ?>
+
+    <div class="row g-3">
+
+        <!-- ── Left Column: Items ── -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        Items
+                        <span class="text-muted fw-normal fs-6">(<?= count($items) ?>)</span>
+                    </h5>
+
+                    <?php foreach ($items as $item): ?>
+                        <div class="d-flex align-items-center gap-3 py-3 border-bottom">
+                            <div class="flex-shrink-0">
+                                <?php if (!empty($item['imageUrl'])): ?>
+                                    <img src="../uploads/products/<?= htmlspecialchars($item['imageUrl']) ?>"
+                                        alt="<?= htmlspecialchars($item['productName']) ?>"
+                                        onerror="this.src='assets/img/product-placeholder.png'" class="rounded"
+                                        style="width:72px;height:72px;object-fit:cover;">
+                                <?php else: ?>
+                                    <div class="rounded bg-light d-flex align-items-center justify-content-center"
+                                        style="width:72px;height:72px;">
+                                        <i class="bi bi-image text-muted fs-4"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold"><?= htmlspecialchars($item['productName']) ?></div>
+                                <small class="text-muted">
+                                    ₱<?= number_format($item['unitPrice'], 2) ?> &times; <?= $item['quantity'] ?>
+                                </small>
+                            </div>
+                            <div class="fw-bold text-success text-end" style="min-width:90px;">
+                                ₱<?= number_format($item['subtotal'], 2) ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <div class="d-flex justify-content-end align-items-center pt-3 gap-3">
+                        <span class="text-muted">Order Total</span>
+                        <span class="fs-5 fw-bold text-success">₱<?= number_format($order['totalAmount'], 2) ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right Column: Data ── -->
+        <div class="col-lg-4 d-flex flex-column gap-3">
+
+            <!-- Order Info -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Order Info</h5>
+                    <table class="table table-borderless table-sm mb-0">
+                        <tr>
+                            <td class="text-muted ps-0">Order #</td>
+                            <td class="fw-semibold text-end"><?= htmlspecialchars($order['orderNumber']) ?></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Status</td>
+                            <td class="text-end">
+                                <span class="badge <?= $badge ?>"><?= ucfirst($order['status']) ?></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Date Placed</td>
+                            <td class="text-end"><?= date('M d, Y', strtotime($order['orderedAt'])) ?></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Payment</td>
+                            <td class="text-end">
+                                <?= htmlspecialchars(strtoupper(str_replace('_', ' ', $order['paymentMethod'] ?? '—'))) ?>
+                            </td>
+                        </tr>
+                        <?php if (!empty($order['referenceNumber'])): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Ref #</td>
+                                <td class="text-end"><?= htmlspecialchars($order['referenceNumber']) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($order['trackingNumber'])): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Tracking #</td>
+                                <td class="text-end"><?= htmlspecialchars($order['trackingNumber']) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if (!empty($order['courier'])): ?>
+                            <tr>
+                                <td class="text-muted ps-0">Courier</td>
+                                <td class="text-end"><?= htmlspecialchars($order['courier']) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Shipping Address -->
+            <?php if (!empty($order['recipientName'])): ?>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-geo-alt me-1"></i> Shipping Address</h5>
+                        <p class="mb-1 fw-semibold"><?= htmlspecialchars($order['recipientName']) ?></p>
+                        <p class="mb-0 text-muted small" style="line-height:1.7;">
+                            <?= htmlspecialchars($order['phoneNumber']) ?><br>
+                            <?= htmlspecialchars($order['street']) ?>,
+                            <?= htmlspecialchars($order['barangay']) ?>,
+                            <?= htmlspecialchars($order['city']) ?>
+                            <?php if (!empty($order['province'])): ?>,
+                                <?= htmlspecialchars($order['province']) ?>     <?php endif; ?>
+                            <?php if (!empty($order['zipCode'])): ?>
+                                <?= htmlspecialchars($order['zipCode']) ?>     <?php endif; ?>
+                        </p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Notes -->
+            <?php if (!empty($order['notes'])): ?>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-chat-left-text me-1"></i> Notes</h5>
+                        <p class="mb-0 text-muted"><?= nl2br(htmlspecialchars($order['notes'])) ?></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Actions -->
+            <?php
+            $onlinePayments = ['gcash', 'maya', 'credit_card', 'bank_transfer'];
+            $isOnline = in_array($order['paymentMethod'], $onlinePayments);
+            ?>
+
+            <?php if ($order['status'] === 'pending'): ?>
+                <form method="POST"
+                    onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.')">
+                    <input type="hidden" name="cancelOrder" value="1">
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-x-circle me-1"></i> Cancel Order
+                    </button>
+                </form>
+            <?php endif; ?>
+
+            <?php if ($order['status'] === 'delivered'): ?>
+                <?php if ($isOnline): ?>
+                    <form method="POST" onsubmit="return confirm('Request a refund for this order?')">
+                        <input type="hidden" name="refundOrder" value="1">
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-cash-stack me-1"></i> Request Refund
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <form method="POST" onsubmit="return confirm('Request a return for this order?')">
+                        <input type="hidden" name="returnOrder" value="1">
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-box-arrow-left me-1"></i> Return Order
+                        </button>
+                    </form>
+                <?php endif; ?>
+                <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
+                    <i class="bi bi-star me-1"></i> Rate Products
+                </a>
+            <?php endif; ?>
+
+            <?php if ($order['status'] === 'refunded'): ?>
+                <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
+                    <i class="bi bi-star me-1"></i> Rate Products
+                </a>
+            <?php endif; ?>
+
+            <?php if (in_array($order['status'], ['cancelled', 'delivered', 'refunded'])): ?>
+                <form method="POST">
+                    <input type="hidden" name="orderAgain" value="1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i> Order Again
+                    </button>
+                </form>
+            <?php endif; ?>
+
+            <a href="orders" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-arrow-left me-1"></i> Back to My Orders
+            </a> 
+
+        </div>
+    </div>
+
+</section>
+
+<?php include('includes/footer.php'); ?>

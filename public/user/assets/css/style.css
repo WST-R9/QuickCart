@@ -935,17 +935,62 @@ h6 {
 /*--------------------------------------------------------------
 # Category Filter Pills
 --------------------------------------------------------------*/
-.category-pills {
+.category-pills-wrap {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 20px;
 }
 
+.pill-arrow {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid #d4e8da;
+  background: #fff;
+  color: #005d21;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  box-shadow: 0 1px 4px rgba(0, 93, 33, 0.08);
+}
+
+.pill-arrow:hover {
+  background: #005d21;
+  border-color: #005d21;
+  color: #fff;
+}
+
+.pill-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.category-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 4px 2px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.category-pills::-webkit-scrollbar {
+  display: none;
+}
+
 .category-pills .pill {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 13px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 9px 20px;
+  font-size: 14px;
+  border-radius: 24px;
   font-weight: 600;
   border: 1.5px solid #d4e8da;
   background: #fff;
@@ -983,6 +1028,59 @@ h6 {
   vertical-align: middle;
   font-size: 14px;
 }
+
+/*--------------------------------------------------------------
+# Order Tracker (orderView)
+--------------------------------------------------------------*/
+.order-tracker { min-height: 80px; }
+
+.tracker-line {
+  position: absolute;
+  top: 22px;
+  left: 10%;
+  width: 80%;
+  height: 3px;
+  background: #dee2e6;
+  z-index: 0;
+}
+
+.tracker-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  color: #adb5bd;
+}
+
+.tracker-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f8f9fa;
+  border: 3px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 1.1rem;
+  transition: all .25s;
+}
+
+.tracker-step.done .tracker-icon {
+  background: #d1e7dd;
+  border-color: #005d21;
+  color: #005d21;
+}
+
+.tracker-step.active .tracker-icon {
+  background: #005d21;
+  border-color: #005d21;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(0, 93, 33, 0.2);
+}
+
+.tracker-step.active small { color: #005d21; font-weight: 600; }
+.tracker-step.done  small  { color: #005d21; }
+
 
 /*--------------------------------------------------------------
 # Cart Sidebar / Offcanvas
@@ -1169,65 +1267,6 @@ h6 {
 .empty-state p {
   color: #aaa;
   font-size: 14px;
-}
-
-/*--------------------------------------------------------------
-# Search Results Dropdown
---------------------------------------------------------------*/
-.search-results-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 20px;
-  right: 20px;
-  background: white;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  max-height: 380px;
-  overflow-y: auto;
-  z-index: 1000;
-  border: 1px solid #d4e8da;
-  border-top: none;
-}
-
-.search-result-item {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  color: #444;
-  text-decoration: none;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background 0.2s;
-}
-
-.search-result-item:hover {
-  background: #e6f4ea;
-  color: #005d21;
-}
-
-.search-result-item:last-child {
-  border-bottom: none;
-}
-
-.search-result-item img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  border-radius: 6px;
-  background: #f4f9f5;
-  padding: 3px;
-  margin-right: 12px;
-}
-
-.search-result-item .result-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #003d16;
-}
-
-.search-result-item .result-price {
-  font-size: 13px;
-  color: #005d21;
-  font-weight: 700;
 }
 
 /*--------------------------------------------------------------

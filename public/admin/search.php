@@ -1,5 +1,4 @@
 <?php
-session_start();
 include_once("../../app/middleware/admin.php");
 include('./includes/header.php');
 include('./includes/topbar.php');
@@ -284,7 +283,7 @@ $totalResults = array_sum(array_map('count', $results));
                 </span>
               </td>
               <td>
-                <a href="inventory-edit.php?id=<?= $row['productId'] ?>" class="btn btn-sm btn-primary">
+                <a href="inventoryEdit.php?id=<?= $row['productId'] ?>" class="btn btn-sm btn-primary">
                   <i class="bi bi-eye"></i> View
                 </a>
               </td>
@@ -362,7 +361,7 @@ $totalResults = array_sum(array_map('count', $results));
               <td><?= htmlspecialchars($row['slug']) ?></td>
               <td><?= $row['parentName'] ? htmlspecialchars($row['parentName']) : 'None' ?></td>
               <td>
-                <a href="categories-edit.php?id=<?= $row['categoryId'] ?>" class="btn btn-sm btn-primary">
+                <a href="categoriesEdit.php?id=<?= $row['categoryId'] ?>" class="btn btn-sm btn-primary">
                   <i class="bi bi-eye"></i> View
                 </a>
               </td>
@@ -402,7 +401,7 @@ $totalResults = array_sum(array_map('count', $results));
               <td><?= htmlspecialchars($row['email'] ?? 'N/A') ?></td>
               <td><?= htmlspecialchars($row['phone'] ?? 'N/A') ?></td>
               <td>
-                <a href="suppliers-edit.php?id=<?= $row['supplierId'] ?>" class="btn btn-sm btn-primary">
+                <a href="suppliersEdit.php?id=<?= $row['supplierId'] ?>" class="btn btn-sm btn-primary">
                   <i class="bi bi-eye"></i> View
                 </a>
               </td>

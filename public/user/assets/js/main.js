@@ -1,5 +1,5 @@
 /**
- * QuickCart – User Portal JS
+ * QuickCart – User Page JS
  */
 
 (function () {
@@ -72,7 +72,7 @@
     });
   });
 
-  /** Cart counter update helper (called from inline PHP or AJAX) */
+  /** Cart badge updater */
   window.updateCartBadge = function (count) {
     const badge = select(".cart-count-badge");
     if (!badge) return;
@@ -92,6 +92,12 @@
       }, 1200);
     });
   });
+
+  /** Scroll active category pill into view */
+  const activePill = document.querySelector('.category-pills .pill.active');
+  if (activePill) {
+    activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
 
 })();
 
