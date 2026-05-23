@@ -26,11 +26,9 @@
         <!-- LEFT TEXT -->
         <div class="col-lg-6 mb-5 mb-lg-0 d-flex flex-column justify-content-center align-items-center text-center"
           style="z-index: 10;">
-
           <h1 class="fw-bold quickcart-title">QuickCart</h1>
           <h2 class="quickcart-subtitle">All Your Shopping Needs in One Cart</h2>
           <img src="assets/img/QC-Icon.png" alt="QuickCart Logo" class="img-fluid mt-4 quickcart-logo">
-
         </div>
 
         <!-- RIGHT FORM -->
@@ -72,6 +70,25 @@
 
               </form>
 
+              <!-- Divider -->
+              <div class="d-flex align-items-center my-3">
+                <hr class="flex-grow-1">
+                <span class="mx-2 text-muted small">or</span>
+                <hr class="flex-grow-1">
+              </div>
+
+              <!-- Continue as Guest -->
+              <div class="text-center">
+                <a href="/WST-QuickCart/public/guest"
+                   class="btn w-100"
+                   style="border:1.5px solid #005d21; color:#005d21; font-weight:600; border-radius:6px;">
+                  <i class="bi bi-person me-1"></i> Continue as Guest
+                </a>
+                <p class="text-muted small mt-2 mb-0">
+                  You can browse products but won't be able to checkout.
+                </p>
+              </div>
+
             </div>
           </div>
         </div>
@@ -83,7 +100,7 @@
   <!-- Bootstrap JS -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <?php include_once(__DIR__ . '/../app/helpers/flashMessage.php'); 
+  <?php include_once(__DIR__ . '/../app/helpers/flashMessage.php');
   flashMessage();
   ?>
 </body>
