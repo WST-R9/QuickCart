@@ -1,0 +1,99 @@
+/* =====================
+LOGIN + REGISTRATION CUSTOM CSS 
+========================*/
+
+/* Background image */
+.background-radial-gradient {
+  min-height: 100vh;
+  background: url("../img/QC-bkrd.png") no-repeat center center;
+  background-size: cover;
+}
+
+/* Glass effect card */
+.bg-glass {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+}
+
+/* QuickCart Button */
+.btn-quickcart {
+  background-color: #005d21;
+  border-color: #005d21;
+  color: white;
+}
+
+.btn-quickcart:hover {
+  background-color: #004a1a;
+  border-color: #004a1a;
+  color: white;
+}
+
+/* Fix full height layout */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Login only (prevents scroll) */
+body.login-page {
+  overflow: hidden;
+}
+
+/* Registration Steps */
+.form-step {
+  display: none;
+}
+
+.form-step-active {
+  display: block;
+}
+
+/* Registration Progress Bar */
+.progress-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.progress-step {
+  flex: 1;
+  height: 5px;
+  background-color: #d3d3d3;
+  border-radius: 5px;
+}
+
+.progress-step.active {
+  background-color: #005d21;
+}
+
+/* Link color */
+.auth-link {
+  color: #04bf47;
+}
+
+.auth-link:hover {
+  color: #04bf47;
+}
+
+/* title sizing */
+.quickcart-title {
+  color: hsl(0, 0%, 100%);
+  font-size: 80px;
+  line-height: 1;
+}
+
+.quickcart-subtitle {
+  color: hsl(191, 41%, 95%);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+/* image sizing */
+.quickcart-logo {
+  max-width: 410px;
+  width: 100%;
+  height: auto;
+}
