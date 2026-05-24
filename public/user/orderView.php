@@ -1,8 +1,9 @@
 <?php
 include_once("../../app/middleware/user.php");
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/badges.php");
 
-$userId = $_SESSION['authUser']['userId'] ?? 0;
+$userId  = $_SESSION['authUser']['userId'] ?? 0;
 $orderId = intval($_GET['id'] ?? 0);
 
 // ── Handle Cancel ──────────────────────────────────────────────────────────
@@ -13,7 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancelOrder'])) {
     ");
     $stmt->bind_param('ii', $orderId, $userId);
     $stmt->execute();
-
     if ($stmt->affected_rows > 0) {
         $rows = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
         while ($row = $rows->fetch_assoc()) {
@@ -28,68 +28,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancelOrder'])) {
     exit;
 }
 
-// ── Handle Return (COD) ────────────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['returnOrder'])) {
+// ── Handle Order Received ──────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderReceived'])) {
     $stmt = $conn->prepare("
-        UPDATE orders SET status = 'refunded'
-        WHERE orderId = ? AND userId = ? AND status = 'delivered'
+        UPDATE shipping
+        SET    receivedAt = NOW()
+        WHERE  orderId = ? AND receivedAt IS NULL
     ");
-    $stmt->bind_param('ii', $orderId, $userId);
+    $stmt->bind_param('i', $orderId);
     $stmt->execute();
-
-    if ($stmt->affected_rows > 0) {
-        $conn->query("UPDATE shipping SET status = 'returned' WHERE orderId = $orderId");
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Return request submitted successfully.'];
-    } else {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Unable to process return.'];
-    }
     $stmt->close();
-    header("Location: orderView?id=$orderId");
-    exit;
-}
-
-// ── Handle Refund (Online Payment) ────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['refundOrder'])) {
-    $stmt = $conn->prepare("
-        UPDATE orders SET status = 'refunded'
-        WHERE orderId = ? AND userId = ? AND status = 'delivered'
-    ");
-    $stmt->bind_param('ii', $orderId, $userId);
-    $stmt->execute();
-
-    if ($stmt->affected_rows > 0) {
-        $conn->query("UPDATE shipping SET status = 'returned' WHERE orderId = $orderId");
-        $conn->query("UPDATE payments SET status = 'refunded' WHERE orderId = $orderId");
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Refund request submitted successfully.'];
-    } else {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Unable to process refund.'];
-    }
-    $stmt->close();
+    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Order marked as received! You can now rate your products.'];
     header("Location: orderView?id=$orderId");
     exit;
 }
 
 // ── Handle Order Again ─────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderAgain'])) {
-    $rows = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
+    $rows  = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
     $added = 0;
-
     while ($item = $rows->fetch_assoc()) {
-        if (!$item['productId'])
-            continue;
-
+        if (!$item['productId']) continue;
         $s = $conn->prepare("SELECT stock FROM products WHERE productId = ? AND status = 'active'");
         $s->bind_param('i', $item['productId']);
         $s->execute();
         $product = $s->get_result()->fetch_assoc();
         $s->close();
-
-        if (!$product || $product['stock'] < 1)
-            continue;
-
+        if (!$product || $product['stock'] < 1) continue;
         $qty = min($item['quantity'], $product['stock']);
-
-        $c = $conn->prepare("
+        $c   = $conn->prepare("
             INSERT INTO cart (userId, productId, quantity)
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
@@ -99,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderAgain'])) {
         $c->close();
         $added++;
     }
-
     if ($added > 0) {
         $_SESSION['flash'] = ['type' => 'success', 'message' => 'Items added to cart. Review and place your order.'];
         header("Location: checkout");
@@ -113,18 +79,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderAgain'])) {
 // ── Fetch Order Header ─────────────────────────────────────────────────────
 $stmt = $conn->prepare("
     SELECT o.orderId, o.orderNumber, o.totalAmount, o.status, o.notes, o.orderedAt,
-           p.method        AS paymentMethod,
-           p.status        AS paymentStatus,
+           p.method          AS paymentMethod,
+           p.status          AS paymentStatus,
            p.referenceNumber,
            s.recipientName, s.phoneNumber,
            s.street, s.barangay, s.city, s.province, s.zipCode,
            s.courier, s.trackingNumber,
-           s.status        AS shippingStatus
-    FROM orders o
+           s.status          AS shippingStatus,
+           s.proofOfDelivery,
+           s.receivedAt
+    FROM   orders o
     LEFT JOIN payments p ON o.orderId = p.orderId
     LEFT JOIN shipping s ON o.orderId = s.orderId
-    WHERE o.orderId = ? AND o.userId = ?
-    LIMIT 1
+    WHERE  o.orderId = ? AND o.userId = ?
+    LIMIT  1
 ");
 $stmt->bind_param('ii', $orderId, $userId);
 $stmt->execute();
@@ -141,30 +109,27 @@ if (!$order) {
 $stmt = $conn->prepare("
     SELECT oi.orderItemId, oi.productName, oi.quantity, oi.unitPrice, oi.subtotal,
            pr.imageUrl
-    FROM orderitems oi
+    FROM   orderitems oi
     LEFT JOIN products pr ON oi.productId = pr.productId
-    WHERE oi.orderId = ?
+    WHERE  oi.orderId = ?
 ");
 $stmt->bind_param('i', $orderId);
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// ── Badge & Tracker ────────────────────────────────────────────────────────
-$badge = match ($order['status']) {
-    'pending' => 'bg-warning text-dark',
-    'confirmed' => 'bg-primary',
-    'processing' => 'bg-info text-dark',
-    'shipped' => 'bg-dark',
-    'delivered' => 'bg-success',
-    'cancelled' => 'bg-danger',
-    'refunded' => 'bg-secondary',
-    default => 'bg-secondary',
-};
-
-$progressSteps = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+// ── Derived state ──────────────────────────────────────────────────────────
+$badge          = orderStatusBadge($order['status']);
+$progressSteps  = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 $currentStepIdx = array_search($order['status'], $progressSteps);
-$showTracker = $currentStepIdx !== false;
+$showTracker    = $currentStepIdx !== false;
+
+$totalGaps = count($progressSteps) - 1; // 4
+$fillPct   = $totalGaps > 0 ? round(($currentStepIdx / $totalGaps) * 80) : 0;
+
+$onlinePayments = ['gcash', 'maya', 'credit_card', 'bank_transfer'];
+$isOnline       = in_array($order['paymentMethod'], $onlinePayments);
+$isReceived     = !empty($order['receivedAt']);
 
 include('includes/header.php');
 include('includes/sidebar.php');
@@ -188,20 +153,21 @@ include('includes/topbar.php');
     <?php if ($showTracker): ?>
         <div class="card mb-3">
             <div class="card-body py-4">
-                <div class="order-tracker d-flex justify-content-between align-items-center position-relative px-2">
+                <div class="order-tracker d-flex justify-content-between align-items-center position-relative px-2"
+                     style="--fill-pct: <?= $fillPct ?>%">
                     <div class="tracker-line"></div>
                     <?php foreach ($progressSteps as $i => $step):
-                        $done = $i < $currentStepIdx;
+                        $done   = $i < $currentStepIdx;
                         $active = $i === $currentStepIdx;
-                        $icon = match ($step) {
-                            'pending' => 'bi-clock',
-                            'confirmed' => 'bi-check-circle',
+                        $icon   = match ($step) {
+                            'pending'    => 'bi-clock',
+                            'confirmed'  => 'bi-check-circle',
                             'processing' => 'bi-gear',
-                            'shipped' => 'bi-truck',
-                            'delivered' => 'bi-bag-check',
-                            default => 'bi-circle',
+                            'shipped'    => 'bi-truck',
+                            'delivered'  => 'bi-bag-check',
+                            default      => 'bi-circle',
                         };
-                        ?>
+                    ?>
                         <div class="tracker-step text-center <?= $done ? 'done' : ($active ? 'active' : '') ?>">
                             <div class="tracker-icon mb-1">
                                 <i class="bi <?= $icon ?>"></i>
@@ -214,10 +180,8 @@ include('includes/topbar.php');
         </div>
 
     <?php else: ?>
-        <div class="alert <?= $order['status'] === 'cancelled' ? 'alert-danger' : 'alert-secondary' ?> d-flex align-items-center mb-3"
-            role="alert">
-            <i
-                class="bi <?= $order['status'] === 'cancelled' ? 'bi-x-circle' : 'bi-arrow-counterclockwise' ?> me-2 fs-5"></i>
+        <div class="alert <?= $order['status'] === 'cancelled' ? 'alert-danger' : 'alert-secondary' ?> d-flex align-items-center mb-3" role="alert">
+            <i class="bi <?= $order['status'] === 'cancelled' ? 'bi-x-circle' : 'bi-arrow-counterclockwise' ?> me-2 fs-5"></i>
             <div>This order has been <strong><?= ucfirst($order['status']) ?></strong>.</div>
         </div>
     <?php endif; ?>
@@ -238,12 +202,13 @@ include('includes/topbar.php');
                             <div class="flex-shrink-0">
                                 <?php if (!empty($item['imageUrl'])): ?>
                                     <img src="../uploads/products/<?= htmlspecialchars($item['imageUrl']) ?>"
-                                        alt="<?= htmlspecialchars($item['productName']) ?>"
-                                        onerror="this.src='assets/img/product-placeholder.png'" class="rounded"
-                                        style="width:72px;height:72px;object-fit:cover;">
+                                         alt="<?= htmlspecialchars($item['productName']) ?>"
+                                         onerror="this.src='assets/img/product-placeholder.png'"
+                                         class="rounded"
+                                         style="width:72px;height:72px;object-fit:cover;">
                                 <?php else: ?>
                                     <div class="rounded bg-light d-flex align-items-center justify-content-center"
-                                        style="width:72px;height:72px;">
+                                         style="width:72px;height:72px;">
                                         <i class="bi bi-image text-muted fs-4"></i>
                                     </div>
                                 <?php endif; ?>
@@ -264,11 +229,39 @@ include('includes/topbar.php');
                         <span class="text-muted">Order Total</span>
                         <span class="fs-5 fw-bold text-success">₱<?= number_format($order['totalAmount'], 2) ?></span>
                     </div>
+
+                    <!-- ── Proof of Delivery ── -->
+                    <?php if ($order['status'] === 'delivered' || $order['status'] === 'refunded'): ?>
+                        <div class="mt-4 pt-3 border-top proof-of-delivery">
+                            <h6 class="fw-semibold mb-3">
+                                <i class="bi bi-camera me-1"></i> Proof of Delivery
+                            </h6>
+                            <?php if (!empty($order['proofOfDelivery'])): ?>
+                                <img src="../uploads/proof/<?= htmlspecialchars($order['proofOfDelivery']) ?>"
+                                     alt="Proof of Delivery">
+                                <p class="text-muted small mt-2 mb-0">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    Delivery photo on record.
+                                </p>
+                            <?php elseif ($order['status'] === 'delivered' && !$isReceived): ?>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-hourglass-split me-1"></i>
+                                    No proof uploaded yet. Confirm receipt using the button on the right.
+                                </p>
+                            <?php else: ?>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-dash-circle me-1"></i>
+                                    No proof of delivery was attached.
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
                 </div>
             </div>
         </div>
 
-        <!-- ── Right Column: Data ── -->
+        <!-- ── Right Column: Info + Actions ── -->
         <div class="col-lg-4 d-flex flex-column gap-3">
 
             <!-- Order Info -->
@@ -330,9 +323,11 @@ include('includes/topbar.php');
                             <?= htmlspecialchars($order['barangay']) ?>,
                             <?= htmlspecialchars($order['city']) ?>
                             <?php if (!empty($order['province'])): ?>,
-                                <?= htmlspecialchars($order['province']) ?>     <?php endif; ?>
+                                <?= htmlspecialchars($order['province']) ?>
+                            <?php endif; ?>
                             <?php if (!empty($order['zipCode'])): ?>
-                                <?= htmlspecialchars($order['zipCode']) ?>     <?php endif; ?>
+                                <?= htmlspecialchars($order['zipCode']) ?>
+                            <?php endif; ?>
                         </p>
                     </div>
                 </div>
@@ -348,15 +343,12 @@ include('includes/topbar.php');
                 </div>
             <?php endif; ?>
 
-            <!-- Actions -->
-            <?php
-            $onlinePayments = ['gcash', 'maya', 'credit_card', 'bank_transfer'];
-            $isOnline = in_array($order['paymentMethod'], $onlinePayments);
-            ?>
+            <!-- ── Actions ── -->
 
+            <!-- Cancel (pending only) -->
             <?php if ($order['status'] === 'pending'): ?>
                 <form method="POST"
-                    onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.')">
+                      onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.')">
                     <input type="hidden" name="cancelOrder" value="1">
                     <button type="submit" class="btn btn-danger w-100">
                         <i class="bi bi-x-circle me-1"></i> Cancel Order
@@ -364,33 +356,43 @@ include('includes/topbar.php');
                 </form>
             <?php endif; ?>
 
+            <!-- Delivered actions -->
             <?php if ($order['status'] === 'delivered'): ?>
-                <?php if ($isOnline): ?>
-                    <form method="POST" onsubmit="return confirm('Request a refund for this order?')">
-                        <input type="hidden" name="refundOrder" value="1">
-                        <button type="submit" class="btn btn-warning w-100">
-                            <i class="bi bi-cash-stack me-1"></i> Request Refund
+
+                <!-- Refund / Return → dedicated page -->
+                <a href="refundOrder?id=<?= $orderId ?>" class="btn btn-warning w-100">
+                    <?php if ($isOnline): ?>
+                        <i class="bi bi-cash-stack me-1"></i> Request Refund
+                    <?php else: ?>
+                        <i class="bi bi-box-arrow-left me-1"></i> Return Order
+                    <?php endif; ?>
+                </a>
+
+                <!-- Order Received / Rate -->
+                <?php if (!$isReceived): ?>
+                    <form method="POST"
+                          onsubmit="return confirm('Confirm that you have received this order?')">
+                        <input type="hidden" name="orderReceived" value="1">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-box-seam me-1"></i> Order Received
                         </button>
                     </form>
                 <?php else: ?>
-                    <form method="POST" onsubmit="return confirm('Request a return for this order?')">
-                        <input type="hidden" name="returnOrder" value="1">
-                        <button type="submit" class="btn btn-warning w-100">
-                            <i class="bi bi-box-arrow-left me-1"></i> Return Order
-                        </button>
-                    </form>
+                    <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
+                        <i class="bi bi-star me-1"></i> Rate Products
+                    </a>
                 <?php endif; ?>
-                <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
-                    <i class="bi bi-star me-1"></i> Rate Products
-                </a>
+
             <?php endif; ?>
 
+            <!-- Refunded → still allow rating -->
             <?php if ($order['status'] === 'refunded'): ?>
                 <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
                     <i class="bi bi-star me-1"></i> Rate Products
                 </a>
             <?php endif; ?>
 
+            <!-- Order Again -->
             <?php if (in_array($order['status'], ['cancelled', 'delivered', 'refunded'])): ?>
                 <form method="POST">
                     <input type="hidden" name="orderAgain" value="1">
@@ -402,7 +404,7 @@ include('includes/topbar.php');
 
             <a href="orders" class="btn btn-outline-secondary w-100">
                 <i class="bi bi-arrow-left me-1"></i> Back to My Orders
-            </a> 
+            </a>
 
         </div>
     </div>

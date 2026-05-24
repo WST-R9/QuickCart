@@ -367,7 +367,7 @@ h6 {
 
 .header {
   transition: all 0.5s;
-  z-index: 997;
+  z-index: 1050;
   height: 60px;
   box-shadow: 0px 2px 20px rgba(0, 93, 33, 0.3);
   background-color: #005d21 !important;
@@ -1032,8 +1032,12 @@ h6 {
 /*--------------------------------------------------------------
 # Order Tracker (orderView)
 --------------------------------------------------------------*/
-.order-tracker { min-height: 80px; }
+.order-tracker {
+  min-height: 80px;
+  padding: 10px 0;
+}
 
+/* Grey base line spanning between first and last icon */
 .tracker-line {
   position: absolute;
   top: 22px;
@@ -1044,42 +1048,84 @@ h6 {
   z-index: 0;
 }
 
+/* Green progress line — drawn via ::before up to current step */
+.order-tracker::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 10%;
+  height: 3px;
+  width: var(--fill-pct, 0%);
+  background-color: #005d21;
+  z-index: 1;
+  transition: width 0.4s ease;
+}
+
 .tracker-step {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   flex: 1;
   color: #adb5bd;
 }
 
+.tracker-step small {
+  display: block;
+  font-size: 11px;
+  color: #adb5bd;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Default (upcoming) icon */
 .tracker-icon {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #f8f9fa;
+  background: #fff;
   border: 3px solid #dee2e6;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
   font-size: 1.1rem;
+  color: #adb5bd;
   transition: all .25s;
 }
 
+/* Completed steps — solid green fill */
 .tracker-step.done .tracker-icon {
-  background: #d1e7dd;
-  border-color: #005d21;
-  color: #005d21;
-}
-
-.tracker-step.active .tracker-icon {
   background: #005d21;
   border-color: #005d21;
   color: #fff;
-  box-shadow: 0 0 0 4px rgba(0, 93, 33, 0.2);
 }
 
-.tracker-step.active small { color: #005d21; font-weight: 600; }
-.tracker-step.done  small  { color: #005d21; }
+.tracker-step.done small {
+  color: #005d21;
+}
+
+/* Active (current) step — green ring, white fill */
+.tracker-step.active .tracker-icon {
+  background: #fff;
+  border-color: #005d21;
+  border-width: 3px;
+  color: #005d21;
+  box-shadow: 0 0 0 4px rgba(0, 93, 33, 0.18);
+}
+
+.tracker-step.active small {
+  color: #005d21;
+  font-weight: 700;
+}
+
+/*--------------------------------------------------------------
+# Proof of Delivery
+--------------------------------------------------------------*/
+.proof-of-delivery img {
+  max-height: 280px;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
 
 
 /*--------------------------------------------------------------
@@ -1280,4 +1326,100 @@ h6 {
   .shop-hero h2 {
     font-size: 20px;
   }
+}
+
+/*--------------------------------------------------------------
+# Refund Page
+--------------------------------------------------------------*/
+.reason-btn {
+    font-size: 13px;
+    padding: 10px 12px;
+    border-color: #d4e8da;
+    color: #3e6f44;
+    transition: all .15s;
+}
+.reason-btn:hover {
+    background: #e6f4ea;
+    border-color: #005d21;
+    color: #005d21;
+}
+.btn-check:checked + .reason-btn {
+    background: #005d21 !important;
+    border-color: #005d21 !important;
+    color: #fff !important;
+}
+
+.rate-hero {
+    background: linear-gradient(135deg, #005d21 0%, #007a2b 60%, #00a83b 100%);
+    border-radius: 14px;
+    padding: 20px 24px;
+    color: #fff;
+}
+.rate-hero-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: #ffe066; flex-shrink: 0;
+}
+.rate-hero-title {
+    font-size: 18px; font-weight: 700;
+    font-family: "Nunito", sans-serif;
+}
+.rate-hero-sub { font-size: 13px; opacity: .88; }
+
+/* Rate card */
+.rate-card { margin-bottom: 16px !important; }
+.rate-card.already-rated { opacity: .85; }
+
+/* Product image in rate form */
+.rate-img {
+    width: 80px; height: 80px;
+    object-fit: cover;
+}
+.rate-product-name {
+    font-family: "Nunito", sans-serif;
+    font-size: 15px;
+    color: #003d16;
+}
+
+/*--------------------------------------------------------------
+# Product Review Form
+--------------------------------------------------------------*/
+
+/* ── Star Rating ── */
+.star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 2px;
+}
+.star-rating input[type="radio"] {
+    display: none;
+}
+.star-rating label {
+    cursor: pointer;
+    font-size: 1.6rem;
+    color: #dee2e6;
+    transition: color .15s, transform .1s;
+    line-height: 1;
+}
+/* Highlight hovered star and all stars before it (flex-reverse trick) */
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #f5c518;
+}
+.star-rating label:hover {
+    transform: scale(1.15);
+}
+.star-rating input:checked + label {
+    color: #f5c518;
+}
+
+/* Hint text */
+.star-hint {
+    font-size: 12px;
+    color: #89ad94;
+    font-weight: 600;
+    min-width: 70px;
 }

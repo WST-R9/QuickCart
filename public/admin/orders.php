@@ -1,6 +1,7 @@
 <?php
 include_once("../../app/middleware/admin.php");
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/badges.php");
 
 // Orders Query
 $ordersQuery = "SELECT 
@@ -59,15 +60,7 @@ include('./includes/sidebar.php');
               <?php while ($row = mysqli_fetch_assoc($ordersResult)) : ?>
                 <?php
                 $status = $row['status'];
-                $badge = "bg-secondary";
-
-                if ($status == "pending") $badge = "bg-warning";
-                elseif ($status == "confirmed") $badge = "bg-primary";
-                elseif ($status == "processing") $badge = "bg-info";
-                elseif ($status == "shipped") $badge = "bg-dark";
-                elseif ($status == "delivered") $badge = "bg-success";
-                elseif ($status == "cancelled") $badge = "bg-danger";
-                elseif ($status == "refunded") $badge = "bg-secondary";
+                $badge = orderBadge($status);
                 ?>
 
                 <tr>
@@ -83,7 +76,9 @@ include('./includes/sidebar.php');
 
                   <td>
                     <?php if ($row['paymentStatus']): ?>
-                      <span class="badge bg-success"><?= ucfirst($row['paymentStatus']) ?></span>
+                      <span class="badge <?= paymentBadge($row['paymentStatus']) ?>">
+                        <?= ucfirst($row['paymentStatus']) ?>
+                      </span>
                       <br>
                       <small class="text-muted"><?= strtoupper($row['paymentMethod']) ?></small>
                     <?php else: ?>

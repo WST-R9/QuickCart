@@ -4,6 +4,7 @@ include('./includes/header.php');
 include('./includes/topbar.php');
 include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
+include_once("../../app/helpers/badges.php");
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     echo "<script>alert('Shipping record not found!'); window.location.href='shipping.php';</script>";
@@ -12,7 +13,6 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 
 $shippingId = intval($_GET['id']);
 
-// SHIPPING INFO
 $shippingQuery = "SELECT 
     s.*,
     o.orderNumber,
@@ -38,26 +38,14 @@ if (mysqli_num_rows($shippingResult) == 0) {
 
 $shipping = mysqli_fetch_assoc($shippingResult);
 
-// ORDER ITEMS
-$itemsQuery = "SELECT * FROM orderitems WHERE orderId = {$shipping['orderId']}";
+$itemsQuery  = "SELECT * FROM orderitems WHERE orderId = {$shipping['orderId']}";
 $itemsResult = mysqli_query($conn, $itemsQuery);
 
-// PAYMENT INFO
-$paymentQuery = "SELECT * FROM payments WHERE orderId = {$shipping['orderId']} LIMIT 1";
+$paymentQuery  = "SELECT * FROM payments WHERE orderId = {$shipping['orderId']} LIMIT 1";
 $paymentResult = mysqli_query($conn, $paymentQuery);
-$payment = mysqli_fetch_assoc($paymentResult);
+$payment       = mysqli_fetch_assoc($paymentResult);
 
-// STATUS BADGE HELPER
-function shippingBadge($status) {
-    return match($status) {
-        'preparing'        => 'bg-warning text-dark',
-        'shipped'          => 'bg-primary',
-        'out_for_delivery' => 'bg-info text-dark',
-        'delivered'        => 'bg-success',
-        'returned'         => 'bg-danger',
-        default            => 'bg-secondary'
-    };
-}
+$isCancelled = in_array($shipping['orderStatus'], ['cancelled', 'refunded']);
 ?>
 
 <div class="pagetitle">
@@ -72,6 +60,16 @@ function shippingBadge($status) {
 </div>
 
 <section class="section dashboard">
+
+    <?php if ($isCancelled): ?>
+    <div class="alert alert-<?= $shipping['orderStatus'] === 'refunded' ? 'secondary' : 'danger' ?> d-flex align-items-center mb-3" role="alert">
+        <i class="bi bi-<?= $shipping['orderStatus'] === 'refunded' ? 'arrow-counterclockwise' : 'x-circle' ?> me-2 fs-5"></i>
+        <div>
+            This order has been <strong><?= ucfirst($shipping['orderStatus']) ?></strong> — the shipment was not completed.
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="row">
 
         <!-- LEFT -->
@@ -80,13 +78,20 @@ function shippingBadge($status) {
             <!-- SHIPMENT INFO -->
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Shipment Information</h5>
+                    <h5 class="card-title">
+                        Shipment Information
+                        <?php if ($isCancelled): ?>
+                            <span class="badge <?= orderStatusBadge($shipping['orderStatus']) ?> ms-2">
+                                <?= ucfirst($shipping['orderStatus']) ?>
+                            </span>
+                        <?php endif; ?>
+                    </h5>
 
                     <div class="row g-3">
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Order Number</p>
                             <p class="fw-semibold">
-                                <a href="order-view.php?id=<?= $shipping['orderId'] ?>">
+                                <a href="ordersView.php?id=<?= $shipping['orderId'] ?>">
                                     <?= htmlspecialchars($shipping['orderNumber']) ?>
                                 </a>
                             </p>
@@ -99,22 +104,26 @@ function shippingBadge($status) {
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Courier</p>
-                            <p class="fw-semibold"><?= htmlspecialchars($shipping['courier'] ?? 'N/A') ?></p>
+                            <p class="fw-semibold">
+                                <?= $shipping['courier'] ? htmlspecialchars($shipping['courier']) : '<span class="text-muted">N/A</span>' ?>
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Tracking Number</p>
-                            <p class="fw-semibold"><?= htmlspecialchars($shipping['trackingNumber'] ?? 'N/A') ?></p>
+                            <p class="fw-semibold">
+                                <?= $shipping['trackingNumber'] ? htmlspecialchars($shipping['trackingNumber']) : '<span class="text-muted">N/A</span>' ?>
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Shipped At</p>
                             <p class="fw-semibold">
-                                <?= $shipping['shippedAt'] ? date("M d, Y h:i A", strtotime($shipping['shippedAt'])) : '<span class="text-muted">Not yet shipped</span>' ?>
+                                <?= $shipping['shippedAt'] ? date("M d, Y h:i A", strtotime($shipping['shippedAt'])) : '<span class="text-muted">Not shipped</span>' ?>
                             </p>
                         </div>
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Delivered At</p>
                             <p class="fw-semibold">
-                                <?= $shipping['deliveredAt'] ? date("M d, Y h:i A", strtotime($shipping['deliveredAt'])) : '<span class="text-muted">Not yet delivered</span>' ?>
+                                <?= $shipping['deliveredAt'] ? date("M d, Y h:i A", strtotime($shipping['deliveredAt'])) : '<span class="text-muted">Not delivered</span>' ?>
                             </p>
                         </div>
                     </div>
@@ -211,11 +220,9 @@ function shippingBadge($status) {
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Customer</h5>
-
                     <p class="mb-1"><strong>Name:</strong> <?= htmlspecialchars($shipping['customerName']) ?></p>
                     <p class="mb-1"><strong>Email:</strong> <?= htmlspecialchars($shipping['emailAddress']) ?></p>
                     <p class="mb-3"><strong>Phone:</strong> <?= htmlspecialchars($shipping['customerPhone']) ?></p>
-
                     <a href="customersView.php?id=<?= $shipping['userId'] ?>" class="btn btn-sm btn-primary">
                         <i class="bi bi-person me-1"></i> View Customer
                     </a>
@@ -228,14 +235,21 @@ function shippingBadge($status) {
                 <div class="card-body">
                     <h5 class="card-title">Payment</h5>
 
+                    <?php if ($isCancelled && $payment['status'] === 'pending'): ?>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Order was <?= ucfirst($shipping['orderStatus']) ?> — payment was never collected.
+                        </p>
+                    <?php endif; ?>
+
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item d-flex justify-content-between px-0">
                             <span class="text-muted">Method</span>
-                            <span class="fw-semibold"><?= strtoupper($payment['method']) ?></span>
+                            <span class="fw-semibold"><?= strtoupper(str_replace('_', ' ', $payment['method'])) ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between px-0">
                             <span class="text-muted">Status</span>
-                            <span class="fw-semibold"><?= ucfirst($payment['status']) ?></span>
+                            <span class="badge <?= paymentBadge($payment['status']) ?>"><?= ucfirst($payment['status']) ?></span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between px-0">
                             <span class="text-muted">Amount</span>
@@ -244,7 +258,7 @@ function shippingBadge($status) {
                     </ul>
 
                     <div class="mt-3">
-                        <a href="payment-view.php?id=<?= $payment['paymentId'] ?>" class="btn btn-sm btn-outline-primary w-100">
+                        <a href="paymentsView.php?id=<?= $payment['paymentId'] ?>" class="btn btn-sm btn-outline-primary w-100">
                             <i class="bi bi-eye me-1"></i> View Payment
                         </a>
                     </div>
@@ -257,7 +271,7 @@ function shippingBadge($status) {
                 <div class="card-body">
                     <h5 class="card-title">Quick Links</h5>
                     <div class="d-grid gap-2">
-                        <a href="order-view.php?id=<?= $shipping['orderId'] ?>" class="btn btn-sm btn-outline-primary">
+                        <a href="ordersView.php?id=<?= $shipping['orderId'] ?>" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-bag-check me-1"></i> View Order
                         </a>
                         <a href="shipping" class="btn btn-secondary btn-sm">
