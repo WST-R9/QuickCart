@@ -80,6 +80,12 @@
         <span>Customer Support</span>
       </a>
     </li>
+    <li class="nav-item">
+  <a class="nav-link collapsed" href="refunds">
+    <i class="bi bi-arrow-counterclockwise"></i>
+    <span>Refund Requests</span>
+  </a>
+</li>
 
     <!-- Reviews -->
     <li class="nav-item">
