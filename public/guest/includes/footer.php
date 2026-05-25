@@ -5,6 +5,16 @@
   <div class="copyright">
     © 2026 QuickCart, Inc. All Rights Reserved
   </div>
+  <div class="mt-4 d-flex justify-content-center gap-3">
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/faqs.php">FAQs</a>
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/terms.php">Terms &amp; Conditions</a>
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/login.php">Login</a>
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/registration.php">Register</a>
+  </div>
 </footer>
 
 <a href="#" class="back-to-top d-flex align-items-center justify-content-center">

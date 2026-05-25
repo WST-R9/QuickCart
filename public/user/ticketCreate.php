@@ -6,63 +6,68 @@ $userId = $_SESSION['authUser']['userId'] ?? 0;
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTicket'])) {
-    $subject  = trim($_POST['subject'] ?? '');
-    $category = trim($_POST['category'] ?? '');
-    $priority = trim($_POST['priority'] ?? 'medium');
-    $message  = trim($_POST['message'] ?? '');
+  $subject = trim($_POST['subject'] ?? '');
+  $category = trim($_POST['category'] ?? '');
+  $priority = trim($_POST['priority'] ?? 'medium');
+  $message = trim($_POST['message'] ?? '');
 
-    $validCategories = ['order', 'payment', 'shipping', 'product', 'account', 'other'];
-    $validPriorities = ['low', 'medium', 'high'];
+  $validCategories = ['order', 'payment', 'shipping', 'product', 'account', 'other'];
+  $validPriorities = ['low', 'medium', 'high'];
 
-    if (!$subject || !$category || !$message) {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Please fill in all required fields.'];
-        header("Location: ticketCreate");
-        exit;
-    }
+  if (!$subject || !$category || !$message) {
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Please fill in all required fields.'];
+    header("Location: ticketCreate");
+    exit;
+  }
 
-    if (!in_array($category, $validCategories) || !in_array($priority, $validPriorities)) {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid category or priority.'];
-        header("Location: ticketCreate");
-        exit;
-    }
+  if (!in_array($category, $validCategories) || !in_array($priority, $validPriorities)) {
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid category or priority.'];
+    header("Location: ticketCreate");
+    exit;
+  }
 
-    // Generate ticket number: TKT-YYYYMMDD-XXXXX
-    $ticketNumber = 'TKT-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
+  // Generate ticket number: TKT-YYYYMMDD-XXXXX
+  $ticketNumber = 'TKT-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
 
-    $conn->begin_transaction();
+  $conn->begin_transaction();
 
-    try {
-        // Insert ticket
-        $tStmt = $conn->prepare("
+  try {
+    // Insert ticket
+    $tStmt = $conn->prepare("
             INSERT INTO support_tickets (ticketNumber, userId, subject, category, priority, status)
             VALUES (?, ?, ?, ?, ?, 'open')
         ");
-        $tStmt->bind_param("sisss", $ticketNumber, $userId, $subject, $category, $priority);
-        $tStmt->execute();
-        $ticketId = $conn->insert_id;
-        $tStmt->close();
+    $tStmt->bind_param("sisss", $ticketNumber, $userId, $subject, $category, $priority);
+    $tStmt->execute();
+    $ticketId = $conn->insert_id;
+    $tStmt->close();
 
-        // Insert first message
-        $mStmt = $conn->prepare("
+    // Insert first message
+    $mStmt = $conn->prepare("
             INSERT INTO ticket_messages (ticketId, senderRole, message)
             VALUES (?, 'customer', ?)
         ");
-        $mStmt->bind_param("is", $ticketId, $message);
-        $mStmt->execute();
-        $mStmt->close();
+    $mStmt->bind_param("is", $ticketId, $message);
+    $mStmt->execute();
+    $mStmt->close();
 
-        $conn->commit();
+    // Notify admin of new ticket
+    include_once("../../app/helpers/notifications.php");
+    $customerName = trim(($_SESSION['authUser']['firstName'] ?? '') . ' ' . ($_SESSION['authUser']['lastName'] ?? ''));
+    notifyAdminNewTicket($conn, $ticketId, $ticketNumber, $customerName, $subject);
 
-        $_SESSION['flash'] = ['type' => 'success', 'message' => "Ticket <strong>$ticketNumber</strong> submitted! We'll get back to you soon."];
-        header("Location: ticketView?id=$ticketId");
-        exit;
+    $conn->commit();
 
-    } catch (Exception $e) {
-        $conn->rollback();
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Failed to create ticket: ' . $e->getMessage()];
-        header("Location: ticketCreate");
-        exit;
-    }
+    $_SESSION['flash'] = ['type' => 'success', 'message' => "Ticket <strong>$ticketNumber</strong> submitted! We'll get back to you soon."];
+    header("Location: ticketView?id=$ticketId");
+    exit;
+
+  } catch (Exception $e) {
+    $conn->rollback();
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Failed to create ticket: ' . $e->getMessage()];
+    header("Location: ticketCreate");
+    exit;
+  }
 }
 include('includes/header.php');
 include('includes/sidebar.php');
@@ -87,7 +92,8 @@ include('includes/topbar.php');
       <div class="card">
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-headset me-2 text-success"></i>Submit a Support Request</h5>
-          <p class="text-muted small mb-4">Describe your issue and our support team will respond as soon as possible.</p>
+          <p class="text-muted small mb-4">Describe your issue and our support team will respond as soon as possible.
+          </p>
 
           <form method="POST" action="ticketCreate">
 
@@ -95,9 +101,8 @@ include('includes/topbar.php');
             <div class="mb-3">
               <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
               <input type="text" name="subject" class="form-control" maxlength="255"
-                     placeholder="Brief description of your issue"
-                     value="<?= htmlspecialchars($_POST['subject'] ?? '') ?>"
-                     style="border-color:#d4e8da;" required>
+                placeholder="Brief description of your issue" value="<?= htmlspecialchars($_POST['subject'] ?? '') ?>"
+                style="border-color:#d4e8da;" required>
             </div>
 
             <!-- Category & Priority side by side -->
@@ -107,10 +112,16 @@ include('includes/topbar.php');
                 <select name="category" class="form-select" style="border-color:#d4e8da;" required>
                   <option value="" disabled <?= empty($_POST['category']) ? 'selected' : '' ?>>Select a category</option>
                   <?php
-                  $cats = ['order' => 'Order', 'payment' => 'Payment', 'shipping' => 'Shipping',
-                           'product' => 'Product', 'account' => 'Account', 'other' => 'Other'];
+                  $cats = [
+                    'order' => 'Order',
+                    'payment' => 'Payment',
+                    'shipping' => 'Shipping',
+                    'product' => 'Product',
+                    'account' => 'Account',
+                    'other' => 'Other'
+                  ];
                   foreach ($cats as $val => $label):
-                  ?>
+                    ?>
                     <option value="<?= $val ?>" <?= ($_POST['category'] ?? '') === $val ? 'selected' : '' ?>>
                       <?= $label ?>
                     </option>
@@ -123,7 +134,7 @@ include('includes/topbar.php');
                   <?php
                   $pris = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High'];
                   foreach ($pris as $val => $label):
-                  ?>
+                    ?>
                     <option value="<?= $val ?>" <?= ($_POST['priority'] ?? 'medium') === $val ? 'selected' : '' ?>>
                       <?= $label ?>
                     </option>
@@ -136,8 +147,9 @@ include('includes/topbar.php');
             <div class="mb-4">
               <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
               <textarea name="message" class="form-control" rows="6"
-                        placeholder="Please describe your issue in detail. Include order numbers, product names, or any relevant information…"
-                        style="border-color:#d4e8da; resize:vertical;" required><?= htmlspecialchars($_POST['message'] ?? '') ?></textarea>
+                placeholder="Please describe your issue in detail. Include order numbers, product names, or any relevant information…"
+                style="border-color:#d4e8da; resize:vertical;"
+                required><?= htmlspecialchars($_POST['message'] ?? '') ?></textarea>
               <div class="form-text">Be as specific as possible so we can resolve your issue faster.</div>
             </div>
 

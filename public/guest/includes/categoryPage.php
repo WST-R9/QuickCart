@@ -2,44 +2,52 @@
 // categoryPage.php (GUEST) — expects $catId, $catTitle, $catIcon
 // Guests can browse but must log in to add to cart or wishlist
 
-$search     = trim($_GET['search'] ?? '');
+$search = trim($_GET['search'] ?? '');
 $priceRange = $_GET['price'] ?? '';
-$sort       = $_GET['sort'] ?? 'newest';
-$page       = max(1, (int) ($_GET['page'] ?? 1));
-$perPage    = 12;
-$offset     = ($page - 1) * $perPage;
+$sort = $_GET['sort'] ?? 'newest';
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 12;
+$offset = ($page - 1) * $perPage;
 
-$where  = "p.status = 'active' AND p.stock > 0 AND (p.categoryId = ? OR c.parentId = ?)";
+$where = "p.status = 'active' AND p.stock > 0 AND (p.categoryId = ? OR c.parentId = ?)";
 $params = [$catId, $catId];
-$types  = 'ii';
+$types = 'ii';
 
 if ($search !== '') {
-    $where   .= " AND (p.name LIKE ? OR p.description LIKE ?)";
-    $like     = "%$search%";
-    $params[] = $like;
-    $params[] = $like;
-    $types   .= 'ss';
+  $where .= " AND (p.name LIKE ? OR p.description LIKE ?)";
+  $like = "%$search%";
+  $params[] = $like;
+  $params[] = $like;
+  $types .= 'ss';
 }
 
 switch ($priceRange) {
-    case 'under50':   $where .= " AND p.price < 50"; break;
-    case '50to200':   $where .= " AND p.price BETWEEN 50 AND 200"; break;
-    case '200to500':  $where .= " AND p.price BETWEEN 200 AND 500"; break;
-    case 'above500':  $where .= " AND p.price > 500"; break;
+  case 'under50':
+    $where .= " AND p.price < 50";
+    break;
+  case '50to200':
+    $where .= " AND p.price BETWEEN 50 AND 200";
+    break;
+  case '200to500':
+    $where .= " AND p.price BETWEEN 200 AND 500";
+    break;
+  case 'above500':
+    $where .= " AND p.price > 500";
+    break;
 }
 
 $orderBy = match ($sort) {
-    'price_asc'  => 'p.price ASC',
-    'price_desc' => 'p.price DESC',
-    'name_asc'   => 'p.name ASC',
-    default      => 'p.createdAt DESC',
+  'price_asc' => 'p.price ASC',
+  'price_desc' => 'p.price DESC',
+  'name_asc' => 'p.name ASC',
+  default => 'p.createdAt DESC',
 };
 
 $priceLabels = [
-    'under50'  => 'Under ₱50',
-    '50to200'  => '₱50 – ₱200',
-    '200to500' => '₱200 – ₱500',
-    'above500' => '₱500+',
+  'under50' => 'Under ₱50',
+  '50to200' => '₱50 – ₱200',
+  '200to500' => '₱200 – ₱500',
+  'above500' => '₱500+',
 ];
 
 // Count
@@ -112,12 +120,12 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         <input type="hidden" name="price" value="<?= htmlspecialchars($priceRange) ?>">
       <?php endif; ?>
       <span class="text-muted small fw-semibold text-nowrap">Sort by</span>
-      <select name="sort" class="form-select form-select-sm border-0 fw-bold"
-        style="width:auto; box-shadow:none;" onchange="this.form.submit()">
-        <option value="newest"     <?= $sort === 'newest'     ? 'selected' : '' ?>>Newest</option>
-        <option value="price_asc"  <?= $sort === 'price_asc'  ? 'selected' : '' ?>>Price: Low → High</option>
+      <select name="sort" class="form-select form-select-sm border-0 fw-bold" style="width:auto; box-shadow:none;"
+        onchange="this.form.submit()">
+        <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest</option>
+        <option value="price_asc" <?= $sort === 'price_asc' ? 'selected' : '' ?>>Price: Low → High</option>
         <option value="price_desc" <?= $sort === 'price_desc' ? 'selected' : '' ?>>Price: High → Low</option>
-        <option value="name_asc"   <?= $sort === 'name_asc'   ? 'selected' : '' ?>>Name: A → Z</option>
+        <option value="name_asc" <?= $sort === 'name_asc' ? 'selected' : '' ?>>Name: A → Z</option>
       </select>
       <?php if ($search || $priceRange || $sort !== 'newest'): ?>
         <a href="<?= $currentPage ?>" class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Clear filters">
@@ -129,7 +137,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
   <!-- Login notice banner -->
   <div class="alert d-flex align-items-center gap-2 mb-3"
-       style="background:#fff8e1; border:1px solid #ffe082; color:#5d4037; border-radius:8px;">
+    style="background:#fff8e1; border:1px solid #ffe082; color:#5d4037; border-radius:8px;">
     <i class="bi bi-info-circle-fill" style="color:#f59e0b; font-size:18px;"></i>
     <span>
       You're browsing as a guest.
@@ -172,13 +180,20 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
               <?php if ($product['stock'] <= 5): ?>
                 <span class="badge bg-warning text-dark product-badge">Low Stock</span>
               <?php endif; ?>
-              <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                alt="<?= htmlspecialchars($product['name']) ?>"
-                onerror="this.src='../user/assets/img/product-placeholder.png'">
+              <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>">
+                <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                  alt="<?= htmlspecialchars($product['name']) ?>"
+                  onerror="this.src='../../user/assets/img/product-placeholder.png'">
+              </a>
             </div>
             <div class="product-body">
               <div class="product-category"><?= htmlspecialchars($product['categoryName'] ?? 'General') ?></div>
-              <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+              <div class="product-name">
+                <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>"
+                  style="text-decoration:none; color:inherit;">
+                  <?= htmlspecialchars($product['name']) ?>
+                </a>
+              </div>
               <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
               <div class="product-stock">
                 <i class="bi bi-box-seam me-1"></i><?= $product['stock'] ?> in stock
@@ -186,16 +201,13 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
               <!-- Add to Cart → redirect to login -->
               <div class="d-flex gap-2 mt-2 align-items-stretch">
                 <a href="#" onclick="showLoginPrompt(); return false;"
-                   class="btn-add-cart w-100 text-center text-decoration-none"
-                   title="Login to add to cart">
+                  class="btn-add-cart w-100 text-center text-decoration-none" title="Login to add to cart">
                   <i class="bi bi-cart-plus me-1"></i> Add to Cart
                 </a>
                 <!-- Wishlist → redirect to login -->
-                <a href="#" onclick="showLoginPrompt(); return false;"
-                   class="btn btn-sm btn-light rounded-circle"
-                   style="width:36px; height:36px; padding:0; border:1px solid #dee2e6;
+                <a href="#" onclick="showLoginPrompt(); return false;" class="btn btn-sm btn-light rounded-circle" style="width:36px; height:36px; padding:0; border:1px solid #dee2e6;
                           flex-shrink:0; display:flex; align-items:center; justify-content:center;"
-                   title="Login to add to wishlist">
+                  title="Login to add to wishlist">
                   <i class="bi bi-heart text-muted" style="font-size:13px;"></i>
                 </a>
               </div>
@@ -216,10 +228,11 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
           </li>
           <?php
           $start = max(1, $page - 2);
-          $end   = min($totalPages, $page + 2);
+          $end = min($totalPages, $page + 2);
           if ($start > 1): ?>
             <li class="page-item">
-              <a class="page-link" href="?page=1&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>">1</a>
+              <a class="page-link"
+                href="?page=1&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>">1</a>
             </li>
             <?php if ($start > 2): ?>
               <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -236,7 +249,8 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
               <li class="page-item disabled"><span class="page-link">…</span></li>
             <?php endif; ?>
             <li class="page-item">
-              <a class="page-link" href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>"><?= $totalPages ?></a>
+              <a class="page-link"
+                href="?page=<?= $totalPages ?>&search=<?= urlencode($search) ?>&price=<?= urlencode($priceRange) ?>&sort=<?= urlencode($sort) ?>"><?= $totalPages ?></a>
             </li>
           <?php endif; ?>
           <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">

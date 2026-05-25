@@ -174,20 +174,26 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     <div class="row g-3">
       <?php while ($product = $productsResult->fetch_assoc()):
         $inWishlist = in_array($product['productId'], $wishlistIds);
-      ?>
+        ?>
         <div class="col-6 col-md-4 col-xl-3 col-xxl-2">
           <div class="product-card">
             <div class="product-img-wrap">
               <?php if ($product['stock'] <= 5): ?>
                 <span class="badge bg-warning text-dark product-badge">Low Stock</span>
               <?php endif; ?>
-              <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                alt="<?= htmlspecialchars($product['name']) ?>"
-                onerror="this.src='assets/img/product-placeholder.png'">
+              <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>">
+                <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                  alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.src='assets/img/product-placeholder.png'">
+              </a>
             </div>
             <div class="product-body">
               <div class="product-category"><?= htmlspecialchars($product['categoryName'] ?? 'General') ?></div>
-              <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+              <div class="product-name">
+                <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>"
+                  style="text-decoration:none; color:inherit;">
+                  <?= htmlspecialchars($product['name']) ?>
+                </a>
+              </div>
               <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
               <div class="product-stock">
                 <i class="bi bi-box-seam me-1"></i><?= $product['stock'] ?> in stock
@@ -200,16 +206,14 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
                     Add to Cart
                   </button>
                 </form>
-                <form action="../../app/controllers/wishlistController.php" method="POST"
-                      class="d-flex align-items-center">
+                <form action="../../app/controllers/wishlistController.php" method="POST" class="d-flex align-items-center">
                   <input type="hidden" name="productId" value="<?= $product['productId'] ?>">
-                  <button type="submit"
-                          name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
-                          class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $inWishlist ? 'wishlisted' : '' ?>"
-                          style="width:36px; height:36px; padding:0; border:1px solid #dee2e6; flex-shrink:0;"
-                          title="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
+                  <button type="submit" name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
+                    class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $inWishlist ? 'wishlisted' : '' ?>"
+                    style="width:36px; height:36px; padding:0; border:1px solid #dee2e6; flex-shrink:0;"
+                    title="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
                     <i class="bi <?= $inWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-muted' ?>"
-                       style="font-size:13px;"></i>
+                      style="font-size:13px;"></i>
                   </button>
                 </form>
               </div>

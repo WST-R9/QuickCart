@@ -213,6 +213,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['placeOrder'])) {
         $cStmt->execute();
         $cStmt->close();
 
+         //Notify admin of new order
+        include_once("../../app/helpers/notifications.php");
+        $customerName = trim(($_SESSION['authUser']['firstName'] ?? '') . ' ' . ($_SESSION['authUser']['lastName'] ?? ''));
+        notifyAdminNewOrder($conn, $orderId, $orderNumber, $customerName, $verifiedTotal);
+
         $conn->commit();
 
         $_SESSION['flash'] = ['type' => 'success', 'message' => "Order <strong>$orderNumber</strong> placed successfully!"];

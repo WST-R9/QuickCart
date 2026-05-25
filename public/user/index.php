@@ -183,15 +183,22 @@ $wStmt->close();
                       <?php if ($product['stock'] <= 5): ?>
                         <span class="product-badge bg-warning text-dark">Low Stock</span>
                       <?php endif; ?>
-                      <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                        alt="<?= htmlspecialchars($product['name']) ?>"
-                        onerror="this.src='assets/img/product-placeholder.png'">
+                      <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>">
+                        <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                          alt="<?= htmlspecialchars($product['name']) ?>"
+                          onerror="this.src='assets/img/product-placeholder.png'">
+                      </a>
                     </div>
                     <div class="product-body">
                       <div class="product-category">
                         <?= htmlspecialchars($product['categoryName'] ?? 'General') ?>
                       </div>
-                      <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+                      <div class="product-name">
+                        <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>"
+                          style="text-decoration:none; color:inherit;">
+                          <?= htmlspecialchars($product['name']) ?>
+                        </a>
+                      </div>
                       <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
                       <div class="d-flex gap-2 mt-2 align-items-stretch">
                         <form action="../../app/controllers/cartController.php" method="POST" class="flex-grow-1">

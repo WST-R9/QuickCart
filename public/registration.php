@@ -157,7 +157,7 @@
                   <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="acceptTerms">
                     <label class="form-check-label" for="acceptTerms">
-                      I agree and accept the <a href="#">terms and conditions</a>
+                      I agree and accept the <a href="terms">terms and conditions</a>
                     </label>
                   </div>
                   <div class="d-flex justify-content-between mt-2">

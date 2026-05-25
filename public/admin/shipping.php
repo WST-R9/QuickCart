@@ -5,27 +5,47 @@ include_once("../../app/helpers/badges.php");
 
 // Handle shipping update — BEFORE any HTML output
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updateShipping'])) {
-    $shippingId     = (int) $_POST['shippingId'];
-    $newStatus      = $_POST['shippingStatus'] ?? '';
-    $courier        = trim($_POST['courier'] ?? '');
-    $trackingNumber = trim($_POST['trackingNumber'] ?? '');
+  $shippingId = (int) $_POST['shippingId'];
+  $newStatus = $_POST['shippingStatus'] ?? '';
+  $courier = trim($_POST['courier'] ?? '');
+  $trackingNumber = trim($_POST['trackingNumber'] ?? '');
 
-    $validStatuses = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'returned', 'cancelled'];
+  $validStatuses = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'returned', 'cancelled'];
 
-    if (in_array($newStatus, $validStatuses)) {
-        $shippedAt   = ($newStatus === 'shipped' || $newStatus === 'out_for_delivery') ? ", shippedAt = NOW()" : "";
-        $deliveredAt = ($newStatus === 'delivered') ? ", deliveredAt = NOW()" : "";
+  if (in_array($newStatus, $validStatuses)) {
+    $shippedAt = ($newStatus === 'shipped' || $newStatus === 'out_for_delivery') ? ", shippedAt = NOW()" : "";
+    $deliveredAt = ($newStatus === 'delivered') ? ", deliveredAt = NOW()" : "";
 
-        $stmt = $conn->prepare("UPDATE shipping SET status = ?, courier = ?, trackingNumber = ? $shippedAt $deliveredAt WHERE shippingId = ?");
-        $stmt->bind_param("sssi", $newStatus, $courier, $trackingNumber, $shippingId);
-        $stmt->execute();
-        $stmt->close();
-        $_SESSION['flash'] = ['type' => 'success', 'message' => 'Shipping record updated successfully.'];
-    } else {
-        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid shipping status.'];
+    $stmt = $conn->prepare("UPDATE shipping SET status = ?, courier = ?, trackingNumber = ? $shippedAt $deliveredAt WHERE shippingId = ?");
+    $stmt->bind_param("sssi", $newStatus, $courier, $trackingNumber, $shippingId);
+    $stmt->execute();
+    $stmt->close();
+
+    // Notify the customer of the shipping update
+    include_once("../../app/helpers/notifications.php");
+    $orderInfo = $conn->query("
+            SELECT o.userId, o.orderId, o.orderNumber
+            FROM shipping s
+            JOIN orders o ON s.orderId = o.orderId
+            WHERE s.shippingId = $shippingId
+        ")->fetch_assoc();
+
+    if ($orderInfo) {
+      notifyCustomerShippingUpdate(
+        $conn,
+        $orderInfo['userId'],
+        $orderInfo['orderId'],
+        $orderInfo['orderNumber'],
+        $newStatus
+      );
     }
-    header("Location: shipping");
-    exit;
+
+    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Shipping record updated successfully.'];
+  } else {
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid shipping status.'];
+  }
+  header("Location: shipping");
+  exit;
 }
 
 include('./includes/header.php');
@@ -87,26 +107,29 @@ $shippings = mysqli_fetch_all($shippingResult, MYSQLI_ASSOC);
             <tbody>
               <?php foreach ($shippings as $row):
                 $isCancelled = in_array($row['orderStatus'], ['cancelled', 'refunded']);
-              ?>
+                ?>
                 <tr class="<?= $isCancelled ? 'text-muted' : '' ?>">
                   <td class="fw-semibold"><?= htmlspecialchars($row['orderNumber']) ?></td>
                   <td><?= htmlspecialchars($row['customerName']) ?></td>
-                  <td><?= $row['courier'] ? htmlspecialchars($row['courier']) : '<span class="text-muted">N/A</span>' ?></td>
-                  <td><?= $row['trackingNumber'] ? htmlspecialchars($row['trackingNumber']) : '<span class="text-muted">N/A</span>' ?></td>
-                  <td><span class="badge <?= orderBadge($row['orderStatus']) ?>"><?= ucfirst($row['orderStatus']) ?></span></td>
-                  <td><span class="badge <?= shippingBadge($row['status']) ?>"><?= ucfirst(str_replace('_', ' ', $row['status'])) ?></span></td>
+                  <td><?= $row['courier'] ? htmlspecialchars($row['courier']) : '<span class="text-muted">N/A</span>' ?>
+                  </td>
+                  <td>
+                    <?= $row['trackingNumber'] ? htmlspecialchars($row['trackingNumber']) : '<span class="text-muted">N/A</span>' ?>
+                  </td>
+                  <td><span
+                      class="badge <?= orderBadge($row['orderStatus']) ?>"><?= ucfirst($row['orderStatus']) ?></span></td>
+                  <td><span
+                      class="badge <?= shippingBadge($row['status']) ?>"><?= ucfirst(str_replace('_', ' ', $row['status'])) ?></span>
+                  </td>
                   <td><?= htmlspecialchars($row['city'] . ', ' . $row['province']) ?></td>
                   <td><?= date("M d, Y", strtotime($row['createdAt'])) ?></td>
                   <td>
                     <div class="d-flex gap-1">
-                      <a href="shippingView?id=<?= $row['shippingId'] ?>"
-                         class="btn btn-sm btn-primary" title="View Details">
+                      <a href="shippingView?id=<?= $row['shippingId'] ?>" class="btn btn-sm btn-primary"
+                        title="View Details">
                         <i class="bi bi-eye"></i>
                       </a>
-                      <button type="button"
-                              class="btn btn-sm btn-outline-warning"
-                              title="Update Shipping"
-                              onclick="openUpdateShipping(
+                      <button type="button" class="btn btn-sm btn-outline-warning" title="Update Shipping" onclick="openUpdateShipping(
                                 <?= $row['shippingId'] ?>,
                                 '<?= htmlspecialchars($row['orderNumber']) ?>',
                                 '<?= $row['status'] ?>',
@@ -144,14 +167,13 @@ $shippings = mysqli_fetch_all($shippingResult, MYSQLI_ASSOC);
 
           <div class="mb-3">
             <label class="form-label fw-semibold">Order #</label>
-            <input type="text" id="modal_orderNumber" class="form-control" disabled
-                   style="background:#f8f9fa;">
+            <input type="text" id="modal_orderNumber" class="form-control" disabled style="background:#f8f9fa;">
           </div>
 
           <div class="mb-3">
             <label class="form-label fw-semibold">Shipping Status <span class="text-danger">*</span></label>
-            <select name="shippingStatus" id="modal_shippingStatus" class="form-select"
-                    style="border-color:#d4e8da;" required>
+            <select name="shippingStatus" id="modal_shippingStatus" class="form-select" style="border-color:#d4e8da;"
+              required>
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
               <option value="shipped">Shipped</option>
@@ -164,16 +186,14 @@ $shippings = mysqli_fetch_all($shippingResult, MYSQLI_ASSOC);
 
           <div class="mb-3">
             <label class="form-label fw-semibold">Courier</label>
-            <input type="text" name="courier" id="modal_courier"
-                   class="form-control" placeholder="e.g. J&T, LBC, In-House Delivery…"
-                   style="border-color:#d4e8da;">
+            <input type="text" name="courier" id="modal_courier" class="form-control"
+              placeholder="e.g. J&T, LBC, In-House Delivery…" style="border-color:#d4e8da;">
           </div>
 
           <div class="mb-3">
             <label class="form-label fw-semibold">Tracking Number</label>
-            <input type="text" name="trackingNumber" id="modal_trackingNumber"
-                   class="form-control" placeholder="e.g. TRK-20260524-XXXXX"
-                   style="border-color:#d4e8da;">
+            <input type="text" name="trackingNumber" id="modal_trackingNumber" class="form-control"
+              placeholder="e.g. TRK-20260524-XXXXX" style="border-color:#d4e8da;">
             <div class="form-text">Leave blank if not yet available.</div>
           </div>
         </div>
@@ -189,14 +209,14 @@ $shippings = mysqli_fetch_all($shippingResult, MYSQLI_ASSOC);
 </div>
 
 <script>
-function openUpdateShipping(shippingId, orderNumber, status, courier, trackingNumber) {
-  document.getElementById('modal_shippingId').value       = shippingId;
-  document.getElementById('modal_orderNumber').value      = orderNumber;
-  document.getElementById('modal_shippingStatus').value   = status;
-  document.getElementById('modal_courier').value          = courier;
-  document.getElementById('modal_trackingNumber').value   = trackingNumber;
-  new bootstrap.Modal(document.getElementById('updateShippingModal')).show();
-}
+  function openUpdateShipping(shippingId, orderNumber, status, courier, trackingNumber) {
+    document.getElementById('modal_shippingId').value = shippingId;
+    document.getElementById('modal_orderNumber').value = orderNumber;
+    document.getElementById('modal_shippingStatus').value = status;
+    document.getElementById('modal_courier').value = courier;
+    document.getElementById('modal_trackingNumber').value = trackingNumber;
+    new bootstrap.Modal(document.getElementById('updateShippingModal')).show();
+  }
 </script>
 
 <?php include('./includes/footer.php'); ?>

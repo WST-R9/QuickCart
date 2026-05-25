@@ -7,8 +7,8 @@ include_once("../../app/config/config.php");
 
 // Featured Products
 $featuredResult = mysqli_query(
-    $conn,
-    "SELECT p.productId, p.name, p.price, p.stock, p.imageUrl,
+  $conn,
+  "SELECT p.productId, p.name, p.price, p.stock, p.imageUrl,
             c.name AS categoryName
      FROM products p
      LEFT JOIN categories c ON p.categoryId = c.categoryId
@@ -38,12 +38,11 @@ $featuredResult = mysqli_query(
         <h2>Fresh groceries &amp; essentials 🛒</h2>
         <p>Browse our wide selection of products. Login or create an account to start shopping!</p>
         <div class="d-flex gap-2 mt-3 flex-wrap">
-          <a href="/WST-QuickCart/public/login"
-             class="btn btn-light fw-bold" style="color:#005d21;">
+          <a href="/WST-QuickCart/public/login" class="btn btn-light fw-bold" style="color:#005d21;">
             <i class="bi bi-box-arrow-in-right me-1"></i> Login
           </a>
-          <a href="/WST-QuickCart/public/registration"
-             class="btn fw-bold" style="background:rgba(255,255,255,0.2); color:#fff; border:1.5px solid #fff;">
+          <a href="/WST-QuickCart/public/registration" class="btn fw-bold"
+            style="background:rgba(255,255,255,0.2); color:#fff; border:1.5px solid #fff;">
             <i class="bi bi-person-plus me-1"></i> Create Account
           </a>
         </div>
@@ -56,7 +55,7 @@ $featuredResult = mysqli_query(
 
           <!-- Login notice -->
           <div class="alert d-flex align-items-center gap-2 mb-3"
-               style="background:#fff8e1; border:1px solid #ffe082; color:#5d4037; border-radius:8px;">
+            style="background:#fff8e1; border:1px solid #ffe082; color:#5d4037; border-radius:8px;">
             <i class="bi bi-info-circle-fill" style="color:#f59e0b; font-size:18px;"></i>
             <span>
               <a href="/WST-QuickCart/public/login" class="fw-bold" style="color:#005d21;">Login</a>
@@ -83,28 +82,33 @@ $featuredResult = mysqli_query(
                       <?php if ($product['stock'] <= 5): ?>
                         <span class="product-badge bg-warning text-dark">Low Stock</span>
                       <?php endif; ?>
-                      <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                        alt="<?= htmlspecialchars($product['name']) ?>"
-                        onerror="this.src='../user/assets/img/product-placeholder.png'">
+                      <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>">
+                        <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
+                          alt="<?= htmlspecialchars($product['name']) ?>"
+                          onerror="this.src='user/assets/img/product-placeholder.png'">
+                      </a>
                     </div>
                     <div class="product-body">
                       <div class="product-category">
                         <?= htmlspecialchars($product['categoryName'] ?? 'General') ?>
                       </div>
-                      <div class="product-name"><?= htmlspecialchars($product['name']) ?></div>
+                      <div class="product-name">
+                        <a href="productDisplay.php?id=<?= (int) $product['productId'] ?>"
+                          style="text-decoration:none; color:inherit;">
+                          <?= htmlspecialchars($product['name']) ?>
+                        </a>
+                      </div>
                       <div class="product-price">₱<?= number_format($product['price'], 2) ?></div>
                       <div class="d-flex gap-2 mt-2 align-items-stretch">
                         <!-- Redirect to login instead of adding to cart -->
                         <a href="#" onclick="showLoginPrompt(); return false;"
-                           class="btn-add-cart w-100 text-center text-decoration-none"
-                           title="Login to add to cart">
+                          class="btn-add-cart w-100 text-center text-decoration-none" title="Login to add to cart">
                           <i class="bi bi-cart-plus me-1"></i> Add to Cart
                         </a>
-                        <a href="#" onclick="showLoginPrompt(); return false;"
-                           class="btn btn-sm btn-light rounded-circle"
-                           style="width:36px; height:36px; padding:0; border:1px solid #dee2e6;
+                        <a href="#" onclick="showLoginPrompt(); return false;" class="btn btn-sm btn-light rounded-circle"
+                          style="width:36px; height:36px; padding:0; border:1px solid #dee2e6;
                                   flex-shrink:0; display:flex; align-items:center; justify-content:center;"
-                           title="Login to add to wishlist">
+                          title="Login to add to wishlist">
                           <i class="bi bi-heart text-muted" style="font-size:13px;"></i>
                         </a>
                       </div>
@@ -132,7 +136,7 @@ $featuredResult = mysqli_query(
       <div class="card text-center">
         <div class="card-body py-4">
           <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-               style="width:72px; height:72px; background:#e8f5e9;">
+            style="width:72px; height:72px; background:#e8f5e9;">
             <i class="bi bi-person" style="font-size:32px; color:#005d21;"></i>
           </div>
           <h5 class="fw-bold mb-1" style="color:#003d16;">You're browsing as a guest</h5>

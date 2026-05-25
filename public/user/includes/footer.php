@@ -5,12 +5,18 @@
   <div class="copyright">
     © 2026 QuickCart, Inc. All Rights Reserved
   </div>
+  <div class="mt-4 d-flex justify-content-center gap-3">
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/faqs.php">FAQs</a>
+    <span class="mx-1">·</span>
+    <a href="/WST-QuickCart/public/terms.php">Terms &amp; Conditions</a>
+  </div>
 </footer><!-- End Footer -->
 
 <a href="#" class="back-to-top d-flex align-items-center justify-content-center">
   <i class="bi bi-arrow-up-short"></i>
 </a>
-  
+
 <!-- Vendor JS Files -->
 <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
@@ -30,4 +36,5 @@ flashMessage();
 ?>
 
 </body>
+
 </html>

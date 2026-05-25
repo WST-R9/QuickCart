@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Login Page</title>
+  <title>Login – QuickCart</title>
 
   <!-- Bootstrap CSS -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -14,7 +14,6 @@
 
   <!-- Custom CSS -->
   <link href="assets/css/style.css" rel="stylesheet">
-
 </head>
 
 <body>
@@ -79,9 +78,8 @@
 
               <!-- Continue as Guest -->
               <div class="text-center">
-                <a href="/WST-QuickCart/public/guest"
-                   class="btn w-100"
-                   style="border:1.5px solid #005d21; color:#005d21; font-weight:600; border-radius:6px;">
+                <a href="/WST-QuickCart/public/guest" class="btn w-100"
+                  style="border:1.5px solid #005d21; color:#005d21; font-weight:600; border-radius:6px;">
                   <i class="bi bi-person me-1"></i> Continue as Guest
                 </a>
                 <p class="text-muted small mt-2 mb-0">
@@ -89,11 +87,24 @@
                 </p>
               </div>
 
+              <!-- Quick Links -->
+              <div class="mt-4 d-flex justify-content-center gap-3">
+                <a href="/WST-QuickCart/public/faqs.php" class="text-decoration-none small"
+                  style="color:#005d21; font-weight:500;">
+                  <i class="bi bi-question-circle me-1"></i>FAQs
+                </a>
+                <a href="/WST-QuickCart/public/terms.php" class="text-decoration-none small"
+                  style="color:#005d21; font-weight:500;">
+                  <i class="bi bi-file-text me-1"></i>Terms &amp; Conditions
+                </a>
+              </div>
             </div>
+
           </div>
         </div>
-
       </div>
+
+    </div>
     </div>
   </section>
 

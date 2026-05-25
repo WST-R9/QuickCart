@@ -117,7 +117,7 @@ if ($userId > 0 && isset($conn)) {
             style="width:340px; max-height:420px; overflow-y:auto; padding:0;">
           <!-- Header -->
           <li class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom"
-              style="background:#005d21; border-radius:4px 4px 0 0;">
+              style="background:#018c42; border-radius:4px 4px 0 0;">
             <span class="fw-bold text-white small">
               <i class="bi bi-bell me-1"></i> Notifications
               <?php if ($notifCount > 0): ?>

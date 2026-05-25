@@ -3,7 +3,7 @@ include_once("../../app/middleware/user.php");
 include_once("../../app/config/config.php");
 include_once("../../app/helpers/badges.php");
 
-$userId  = $_SESSION['authUser']['userId'] ?? 0;
+$userId = $_SESSION['authUser']['userId'] ?? 0;
 $orderId = intval($_GET['id'] ?? 0);
 
 // ── Handle Cancel ──────────────────────────────────────────────────────────
@@ -45,18 +45,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderReceived'])) {
 
 // ── Handle Order Again ─────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderAgain'])) {
-    $rows  = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
+    $rows = $conn->query("SELECT productId, quantity FROM orderitems WHERE orderId = $orderId");
     $added = 0;
     while ($item = $rows->fetch_assoc()) {
-        if (!$item['productId']) continue;
+        if (!$item['productId'])
+            continue;
         $s = $conn->prepare("SELECT stock FROM products WHERE productId = ? AND status = 'active'");
         $s->bind_param('i', $item['productId']);
         $s->execute();
         $product = $s->get_result()->fetch_assoc();
         $s->close();
-        if (!$product || $product['stock'] < 1) continue;
+        if (!$product || $product['stock'] < 1)
+            continue;
         $qty = min($item['quantity'], $product['stock']);
-        $c   = $conn->prepare("
+        $c = $conn->prepare("
             INSERT INTO cart (userId, productId, quantity)
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
@@ -119,17 +121,23 @@ $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // ── Derived state ──────────────────────────────────────────────────────────
-$badge          = orderStatusBadge($order['status']);
-$progressSteps  = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+$badge = orderStatusBadge($order['status']);
+$progressSteps = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 $currentStepIdx = array_search($order['status'], $progressSteps);
-$showTracker    = $currentStepIdx !== false;
+$showTracker = $currentStepIdx !== false;
 
 $totalGaps = count($progressSteps) - 1; // 4
-$fillPct   = $totalGaps > 0 ? round(($currentStepIdx / $totalGaps) * 80) : 0;
+$fillPct = $totalGaps > 0 ? round(($currentStepIdx / $totalGaps) * 80) : 0;
 
 $onlinePayments = ['gcash', 'maya', 'credit_card', 'bank_transfer'];
-$isOnline       = in_array($order['paymentMethod'], $onlinePayments);
-$isReceived     = !empty($order['receivedAt']);
+$isOnline = in_array($order['paymentMethod'], $onlinePayments);
+$isReceived = !empty($order['receivedAt']);
+
+// ── 7-day window (mirrors reviews.php) ────────────────────────────────────
+$windowAnchor = !empty($order['receivedAt']) ? $order['receivedAt'] : $order['orderedAt'];
+$daysSince = (int) (new DateTime())->diff(new DateTime($windowAnchor))->days;
+$canActOnOrder = $daysSince <= 7;
+$daysLeftOrder = max(0, 7 - $daysSince);
 
 include('includes/header.php');
 include('includes/sidebar.php');
@@ -154,20 +162,20 @@ include('includes/topbar.php');
         <div class="card mb-3">
             <div class="card-body py-4">
                 <div class="order-tracker d-flex justify-content-between align-items-center position-relative px-2"
-                     style="--fill-pct: <?= $fillPct ?>%">
+                    style="--fill-pct: <?= $fillPct ?>%">
                     <div class="tracker-line"></div>
                     <?php foreach ($progressSteps as $i => $step):
-                        $done   = $i < $currentStepIdx;
+                        $done = $i < $currentStepIdx;
                         $active = $i === $currentStepIdx;
-                        $icon   = match ($step) {
-                            'pending'    => 'bi-clock',
-                            'confirmed'  => 'bi-check-circle',
+                        $icon = match ($step) {
+                            'pending' => 'bi-clock',
+                            'confirmed' => 'bi-check-circle',
                             'processing' => 'bi-gear',
-                            'shipped'    => 'bi-truck',
-                            'delivered'  => 'bi-bag-check',
-                            default      => 'bi-circle',
+                            'shipped' => 'bi-truck',
+                            'delivered' => 'bi-bag-check',
+                            default => 'bi-circle',
                         };
-                    ?>
+                        ?>
                         <div class="tracker-step text-center <?= $done ? 'done' : ($active ? 'active' : '') ?>">
                             <div class="tracker-icon mb-1">
                                 <i class="bi <?= $icon ?>"></i>
@@ -180,8 +188,10 @@ include('includes/topbar.php');
         </div>
 
     <?php else: ?>
-        <div class="alert <?= $order['status'] === 'cancelled' ? 'alert-danger' : 'alert-secondary' ?> d-flex align-items-center mb-3" role="alert">
-            <i class="bi <?= $order['status'] === 'cancelled' ? 'bi-x-circle' : 'bi-arrow-counterclockwise' ?> me-2 fs-5"></i>
+        <div class="alert <?= $order['status'] === 'cancelled' ? 'alert-danger' : 'alert-secondary' ?> d-flex align-items-center mb-3"
+            role="alert">
+            <i
+                class="bi <?= $order['status'] === 'cancelled' ? 'bi-x-circle' : 'bi-arrow-counterclockwise' ?> me-2 fs-5"></i>
             <div>This order has been <strong><?= ucfirst($order['status']) ?></strong>.</div>
         </div>
     <?php endif; ?>
@@ -202,13 +212,12 @@ include('includes/topbar.php');
                             <div class="flex-shrink-0">
                                 <?php if (!empty($item['imageUrl'])): ?>
                                     <img src="../uploads/products/<?= htmlspecialchars($item['imageUrl']) ?>"
-                                         alt="<?= htmlspecialchars($item['productName']) ?>"
-                                         onerror="this.src='assets/img/product-placeholder.png'"
-                                         class="rounded"
-                                         style="width:72px;height:72px;object-fit:cover;">
+                                        alt="<?= htmlspecialchars($item['productName']) ?>"
+                                        onerror="this.src='assets/img/product-placeholder.png'" class="rounded"
+                                        style="width:72px;height:72px;object-fit:cover;">
                                 <?php else: ?>
                                     <div class="rounded bg-light d-flex align-items-center justify-content-center"
-                                         style="width:72px;height:72px;">
+                                        style="width:72px;height:72px;">
                                         <i class="bi bi-image text-muted fs-4"></i>
                                     </div>
                                 <?php endif; ?>
@@ -238,7 +247,7 @@ include('includes/topbar.php');
                             </h6>
                             <?php if (!empty($order['proofOfDelivery'])): ?>
                                 <img src="../uploads/proof/<?= htmlspecialchars($order['proofOfDelivery']) ?>"
-                                     alt="Proof of Delivery">
+                                    alt="Proof of Delivery">
                                 <p class="text-muted small mt-2 mb-0">
                                     <i class="bi bi-check-circle-fill text-success me-1"></i>
                                     Delivery photo on record.
@@ -254,6 +263,31 @@ include('includes/topbar.php');
                                     No proof of delivery was attached.
                                 </p>
                             <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- ── Support Ticket (COD + Not Received) ── -->
+                    <?php if ($order['status'] === 'delivered' && !$isOnline && !$isReceived): ?>
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="flex-shrink-0 text-warning fs-4">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-semibold mb-1">Haven't received your order?</h6>
+                                    <p class="text-muted small mb-3">
+                                        This order was paid via <strong>Cash on Delivery</strong>, so a refund request isn't
+                                        available.
+                                        If your order was marked delivered but never arrived, please file a support ticket
+                                        and
+                                        our team will investigate.
+                                    </p>
+                                    <a href="supportTicket?orderId=<?= $orderId ?>&issue=not_received"
+                                        class="btn btn-warning btn-sm">
+                                        <i class="bi bi-headset me-1"></i> File a Support Ticket
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     <?php endif; ?>
 
@@ -348,7 +382,7 @@ include('includes/topbar.php');
             <!-- Cancel (pending only) -->
             <?php if ($order['status'] === 'pending'): ?>
                 <form method="POST"
-                      onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.')">
+                    onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.')">
                     <input type="hidden" name="cancelOrder" value="1">
                     <button type="submit" class="btn btn-danger w-100">
                         <i class="bi bi-x-circle me-1"></i> Cancel Order
@@ -359,37 +393,90 @@ include('includes/topbar.php');
             <!-- Delivered actions -->
             <?php if ($order['status'] === 'delivered'): ?>
 
-                <!-- Refund / Return → dedicated page -->
-                <a href="refundOrder?id=<?= $orderId ?>" class="btn btn-warning w-100">
-                    <?php if ($isOnline): ?>
-                        <i class="bi bi-cash-stack me-1"></i> Request Refund
-                    <?php else: ?>
-                        <i class="bi bi-box-arrow-left me-1"></i> Return Order
-                    <?php endif; ?>
-                </a>
+                <!-- Refund / Return → 7-day guard -->
+                <?php if ($canActOnOrder): ?>
+                    <a href="refundOrder?id=<?= $orderId ?>" class="btn btn-warning w-100">
+                        <?php if ($isOnline): ?>
+                            <i class="bi bi-cash-stack me-1"></i> Request Refund
+                        <?php else: ?>
+                            <i class="bi bi-box-arrow-left me-1"></i> Return Order
+                        <?php endif; ?>
+                    </a>
+                    <p class="text-muted small text-center mb-0">
+                        <i class="bi bi-clock me-1"></i>
+                        <?= $daysLeftOrder === 0 ? 'Last day' : $daysLeftOrder . ' day(s) left' ?>
+                        to <?= $isOnline ? 'request a refund' : 'return this order' ?>.
+                    </p>
+                <?php else: ?>
+                    <button class="btn btn-warning w-100" disabled data-bs-toggle="tooltip"
+                        title="<?= $isOnline ? 'Refund' : 'Return' ?> window has closed (7-day limit)">
+                        <i class="bi bi-lock me-1"></i>
+                        <?= $isOnline ? 'Refund Closed' : 'Return Closed' ?>
+                    </button>
+                <?php endif; ?>
 
                 <!-- Order Received / Rate -->
                 <?php if (!$isReceived): ?>
-                    <form method="POST"
-                          onsubmit="return confirm('Confirm that you have received this order?')">
-                        <input type="hidden" name="orderReceived" value="1">
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="bi bi-box-seam me-1"></i> Order Received
-                        </button>
-                    </form>
+                    <?php if (!$isOnline): ?>
+                        <form method="POST" onsubmit="return confirm('Confirm that you have received this order?')">
+                            <input type="hidden" name="orderReceived" value="1">
+                            <button type="submit" class="btn btn-success w-100" id="btnOrderReceived"
+                                <?= empty($order['proofOfDelivery']) ? 'disabled title="Waiting for delivery confirmation from courier"' : '' ?>>
+                                <i class="bi bi-box-seam me-1"></i> Order Received
+                            </button>
+                        </form>
+                        <?php if (empty($order['proofOfDelivery'])): ?>
+                            <p class="text-muted small text-center mb-0">
+                                <i class="bi bi-lock me-1"></i>
+                                Button unlocks once the courier uploads proof of delivery.
+                                If it never arrives, <a href="supportTicket?orderId=<?= $orderId ?>&issue=not_received">file a support
+                                    ticket</a>.
+                            </p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <form method="POST" onsubmit="return confirm('Confirm that you have received this order?')">
+                            <input type="hidden" name="orderReceived" value="1">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-box-seam me-1"></i> Order Received
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 <?php else: ?>
-                    <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
-                        <i class="bi bi-star me-1"></i> Rate Products
-                    </a>
+                    <!-- Rate Products → 7-day guard -->
+                    <?php if ($canActOnOrder): ?>
+                        <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
+                            <i class="bi bi-star me-1"></i> Rate Products
+                        </a>
+                        <p class="text-muted small text-center mb-0">
+                            <i class="bi bi-clock me-1"></i>
+                            <?= $daysLeftOrder === 0 ? 'Last day' : $daysLeftOrder . ' day(s) left' ?> to rate.
+                        </p>
+                    <?php else: ?>
+                        <button class="btn btn-success w-100" disabled data-bs-toggle="tooltip"
+                            title="Rating window has closed (7-day limit)">
+                            <i class="bi bi-lock me-1"></i> Rating Closed
+                        </button>
+                    <?php endif; ?>
                 <?php endif; ?>
 
             <?php endif; ?>
 
-            <!-- Refunded → still allow rating -->
+            <!-- Refunded → still allow rating, with 7-day guard -->
             <?php if ($order['status'] === 'refunded'): ?>
-                <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
-                    <i class="bi bi-star me-1"></i> Rate Products
-                </a>
+                <?php if ($canActOnOrder): ?>
+                    <a href="rateOrder?id=<?= $orderId ?>" class="btn btn-success w-100">
+                        <i class="bi bi-star me-1"></i> Rate Products
+                    </a>
+                    <p class="text-muted small text-center mb-0">
+                        <i class="bi bi-clock me-1"></i>
+                        <?= $daysLeftOrder === 0 ? 'Last day' : $daysLeftOrder . ' day(s) left' ?> to rate.
+                    </p>
+                <?php else: ?>
+                    <button class="btn btn-success w-100" disabled data-bs-toggle="tooltip"
+                        title="Rating window has closed (7-day limit)">
+                        <i class="bi bi-lock me-1"></i> Rating Closed
+                    </button>
+                <?php endif; ?>
             <?php endif; ?>
 
             <!-- Order Again -->

@@ -1,9 +1,15 @@
-  </main><!-- End #main -->
+</main><!-- End #main -->
 
   <!-- ======= Footer ======= -->
   <footer id="footer" class="footer">
     <div class="copyright">
       © 2026 QuickCart, Inc. All Rights Reserved
+    </div>
+    <div class="mt-4 d-flex justify-content-center gap-3">
+      <span class="mx-1">·</span>
+      <a href="/WST-QuickCart/public/faqs.php">FAQs</a>
+      <span class="mx-1">·</span>
+      <a href="/WST-QuickCart/public/terms.php">Terms &amp; Conditions</a>
     </div>
   </footer><!-- End Footer -->
 
