@@ -34,18 +34,21 @@ if (!$product) {
     exit;
 }
 
-// Fetch reviews for this product
+// Fetch reviews WITH admin replies
 $stmtRev = $conn->prepare(
-    "SELECT r.*, u.firstName, u.lastName
+    "SELECT r.*, u.firstName, u.lastName,
+            rr.reply AS adminReply, rr.createdAt AS replyCreatedAt,
+            au.firstName AS adminFirstName, au.lastName AS adminLastName
      FROM reviews r
      JOIN users u ON r.userId = u.userId
+     LEFT JOIN review_replies rr ON rr.reviewId = r.reviewId
+     LEFT JOIN users au ON rr.adminId = au.userId
      WHERE r.productId = ?
      ORDER BY r.createdAt DESC"
 );
 $stmtRev->bind_param('i', $productId);
 $stmtRev->execute();
-$reviewsResult = $stmtRev->get_result();
-$reviews = $reviewsResult->fetch_all(MYSQLI_ASSOC);
+$reviews = $stmtRev->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmtRev->close();
 
 // Rating stats
@@ -73,8 +76,7 @@ $stmtRel = $conn->prepare(
 );
 $stmtRel->bind_param('ii', $product['categoryId'], $productId);
 $stmtRel->execute();
-$relatedResult = $stmtRel->get_result();
-$relatedProducts = $relatedResult->fetch_all(MYSQLI_ASSOC);
+$relatedProducts = $stmtRel->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmtRel->close();
 
 // Stock status helper
@@ -169,7 +171,7 @@ if ($product['stock'] == 0) {
 
                     <!-- Price -->
                     <div class="mb-3">
-                        <span class="product-display-price">₱<?= number_format($product['price'], 2) ?></span>
+                        <span class="product-display-price">&#8369;<?= number_format($product['price'], 2) ?></span>
                     </div>
 
                     <!-- Stock -->
@@ -291,11 +293,11 @@ if ($product['stock'] == 0) {
                                     </tr>
                                     <tr>
                                         <td class="text-muted fw-semibold">Category</td>
-                                        <td><?= htmlspecialchars($product['categoryName'] ?? '—') ?></td>
+                                        <td><?= htmlspecialchars($product['categoryName'] ?? '&#8212;') ?></td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted fw-semibold">Supplier</td>
-                                        <td><?= htmlspecialchars($product['supplierName'] ?? '—') ?></td>
+                                        <td><?= htmlspecialchars($product['supplierName'] ?? '&#8212;') ?></td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted fw-semibold">Status</td>
@@ -313,7 +315,7 @@ if ($product['stock'] == 0) {
                                     <tr>
                                         <td class="text-muted fw-semibold">Price</td>
                                         <td class="fw-bold" style="color:#005d21;">
-                                            ₱<?= number_format($product['price'], 2) ?>
+                                            &#8369;<?= number_format($product['price'], 2) ?>
                                         </td>
                                     </tr>
                                     <tr>
@@ -371,6 +373,7 @@ if ($product['stock'] == 0) {
                                             <?= strtoupper(substr($review['firstName'], 0, 1)) ?>
                                         </div>
                                         <div class="flex-grow-1">
+                                            <!-- Reviewer name + stars + date -->
                                             <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                                                 <span class="fw-semibold" style="color:#1a1a2e;">
                                                     <?= htmlspecialchars($review['firstName'] . ' ' . $review['lastName']) ?>
@@ -389,20 +392,52 @@ if ($product['stock'] == 0) {
                                                     <?= date('M j, Y', strtotime($review['createdAt'])) ?>
                                                 </span>
                                             </div>
+
+                                            <!-- Comment -->
                                             <?php if ($review['comment']): ?>
-                                                <p class="mb-0 text-muted" style="font-size:14px; line-height:1.6;">
+                                                <p class="mb-1 text-muted" style="font-size:14px; line-height:1.6;">
                                                     <?= nl2br(htmlspecialchars($review['comment'])) ?>
                                                 </p>
                                             <?php else: ?>
-                                                <p class="mb-0 text-muted fst-italic small">No written review.</p>
+                                                <p class="mb-1 text-muted fst-italic small">No written review.</p>
                                             <?php endif; ?>
+
+                                            <!-- Review photo -->
                                             <?php if ($review['imageUrl']): ?>
                                                 <div class="mt-2">
-                                                    <img src="uploads/reviews/<?= htmlspecialchars($review['imageUrl']) ?>"
+                                                    <img src="../uploads/reviews/<?= htmlspecialchars($review['imageUrl']) ?>"
                                                          alt="Review photo"
-                                                         style="max-width:120px; border-radius:8px; border:1px solid #dee2e6;">
+                                                         style="max-width:120px; border-radius:8px; border:1px solid #dee2e6; cursor:pointer;"
+                                                         onclick="window.open(this.src)">
                                                 </div>
                                             <?php endif; ?>
+
+                                            <!-- Admin Reply -->
+                                            <?php if (!empty($review['adminReply'])): ?>
+                                                <div class="mt-3 p-3 rounded-3 d-flex gap-2"
+                                                     style="background:#f0f7f2; border-left:3px solid #005d21;">
+                                                    <i class="bi bi-shield-check-fill mt-1 flex-shrink-0"
+                                                       style="color:#005d21; font-size:15px;"></i>
+                                                    <div>
+                                                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                            <span class="fw-semibold small" style="color:#005d21;">
+                                                                <?= htmlspecialchars($review['adminFirstName'] . ' ' . $review['adminLastName']) ?>
+                                                            </span>
+                                                            <span class="badge rounded-pill"
+                                                                  style="background:#e8f5e9; color:#2e7d32; font-size:10px;">
+                                                                Store Admin
+                                                            </span>
+                                                            <span class="text-muted small ms-auto">
+                                                                <?= date('M j, Y', strtotime($review['replyCreatedAt'])) ?>
+                                                            </span>
+                                                        </div>
+                                                        <p class="mb-0 small" style="color:#2d4a36; line-height:1.6;">
+                                                            <?= nl2br(htmlspecialchars($review['adminReply'])) ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
                                         </div>
                                     </div>
                                 </div>
@@ -469,7 +504,7 @@ if ($product['stock'] == 0) {
                                             <?= htmlspecialchars($rel['name']) ?>
                                         </a>
                                     </div>
-                                    <div class="product-price">₱<?= number_format($rel['price'], 2) ?></div>
+                                    <div class="product-price">&#8369;<?= number_format($rel['price'], 2) ?></div>
                                     <div class="d-flex gap-2 mt-2 align-items-stretch">
                                         <a href="#" onclick="showLoginPrompt(); return false;"
                                            class="btn-add-cart w-100 text-center text-decoration-none"
@@ -494,65 +529,5 @@ if ($product['stock'] == 0) {
     <?php endif; ?>
 
 </section>
-
-<style>
-/* Product Display Page Styles */
-.product-display-img-wrap {
-    position: relative;
-    background: #f8fdf9;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid #e8f5e9;
-    aspect-ratio: 1/1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.product-display-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 16px;
-    transition: transform 0.3s ease;
-}
-
-.product-display-img:hover {
-    transform: scale(1.04);
-}
-
-.product-display-badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 2;
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 20px;
-}
-
-.product-display-price {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #005d21;
-    letter-spacing: -0.5px;
-}
-
-/* Tab overrides */
-.nav-tabs .nav-link.active {
-    color: #005d21 !important;
-    border-bottom: 2px solid #005d21 !important;
-    background: transparent;
-}
-
-.nav-tabs .nav-link:hover {
-    color: #005d21 !important;
-}
-
-/* Review item hover */
-.review-item:last-child {
-    border-bottom: none !important;
-}
-</style>
 
 <?php include('includes/footer.php'); ?>

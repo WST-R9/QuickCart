@@ -1,16 +1,64 @@
 <?php
 include_once("../../app/middleware/admin.php");
-include('./includes/header.php');
-include('./includes/topbar.php');
-include('./includes/sidebar.php');
 include_once("../../app/config/config.php");
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    echo "<script>alert('Review not found!'); window.location.href='reviews.php';</script>";
+    header("Location: reviews.php");
     exit;
 }
 
 $reviewId = intval($_GET['id']);
+
+// FETCH EXISTING REPLY (needed for save logic before HTML)
+$replyQuery = "SELECT rr.*, CONCAT(u.firstName, ' ', u.lastName) AS adminName
+               FROM review_replies rr
+               JOIN users u ON rr.adminId = u.userId
+               WHERE rr.reviewId = $reviewId LIMIT 1";
+$replyResult   = mysqli_query($conn, $replyQuery);
+$existingReply = mysqli_fetch_assoc($replyResult);
+
+// SAVE / UPDATE REPLY
+if (isset($_POST['saveReply'])) {
+    $replyText = mysqli_real_escape_string($conn, trim($_POST['replyText']));
+    $adminId   = intval($_SESSION['user_id']);
+
+    if (!empty($replyText)) {
+        if ($existingReply) {
+            mysqli_query($conn, "UPDATE review_replies SET reply = '$replyText', adminId = $adminId
+                                 WHERE reviewId = $reviewId");
+        } else {
+            mysqli_query($conn, "INSERT INTO review_replies (reviewId, adminId, reply)
+                                 VALUES ($reviewId, $adminId, '$replyText')");
+        }
+        $_SESSION['message'] = "Reply saved successfully.";
+        $_SESSION['code']    = "success";
+    }
+    header("Location: reviewsView.php?id=$reviewId");
+    exit;
+}
+
+// DELETE REPLY
+if (isset($_POST['deleteReply'])) {
+    mysqli_query($conn, "DELETE FROM review_replies WHERE reviewId = $reviewId");
+    $_SESSION['message'] = "Reply deleted.";
+    $_SESSION['code']    = "success";
+    header("Location: reviewsView.php?id=$reviewId");
+    exit;
+}
+
+// DELETE REVIEW
+if (isset($_POST['deleteReview'])) {
+    mysqli_query($conn, "DELETE FROM reviews WHERE reviewId = $reviewId");
+    $_SESSION['message'] = "Review deleted successfully.";
+    $_SESSION['code']    = "success";
+    header("Location: reviews.php");
+    exit;
+}
+
+// HTML output starts here
+include('./includes/header.php');
+include('./includes/topbar.php');
+include('./includes/sidebar.php');
 
 // REVIEW INFO
 $reviewQuery = "SELECT 
@@ -37,26 +85,22 @@ if (mysqli_num_rows($reviewResult) == 0) {
 
 $review = mysqli_fetch_assoc($reviewResult);
 
+// Re-fetch reply for display (reflects any just-saved changes)
+$replyResult   = mysqli_query($conn, $replyQuery);
+$existingReply = mysqli_fetch_assoc($replyResult);
+
 // LINKED ORDER (if any)
 $orderInfo = null;
 if ($review['orderId']) {
-    $orderQuery = "SELECT orderId, orderNumber, status, totalAmount, orderedAt
-                   FROM orders WHERE orderId = {$review['orderId']} LIMIT 1";
+    $orderQuery  = "SELECT orderId, orderNumber, status, totalAmount, orderedAt
+                    FROM orders WHERE orderId = {$review['orderId']} LIMIT 1";
     $orderResult = mysqli_query($conn, $orderQuery);
-    $orderInfo = mysqli_fetch_assoc($orderResult);
-}
-
-// DELETE REVIEW
-if (isset($_POST['deleteReview'])) {
-    mysqli_query($conn, "DELETE FROM reviews WHERE reviewId = $reviewId");
-    $_SESSION['message'] = "Review deleted successfully.";
-    $_SESSION['code']    = "success";
-    header("Location: reviews.php");
-    exit;
+    $orderInfo   = mysqli_fetch_assoc($orderResult);
 }
 
 // Star rendering helper
-function renderStars($rating) {
+function renderStars($rating)
+{
     $stars = '';
     for ($i = 1; $i <= 5; $i++) {
         $stars .= $i <= $rating
@@ -114,6 +158,69 @@ function renderStars($rating) {
                 </div>
             </div>
 
+            <!-- ADMIN REPLY -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-reply me-1"></i> Admin Reply
+                    </h5>
+
+                    <?php if ($existingReply): ?>
+                        <!-- Show existing reply -->
+                        <div class="p-3 rounded mb-3" style="background:#eaf3ff; border:1px solid #b6d4fe;">
+                            <p class="mb-1" style="font-size:15px; line-height:1.7;">
+                                <?= nl2br(htmlspecialchars($existingReply['reply'])) ?>
+                            </p>
+                            <p class="text-muted small mb-0">
+                                <i class="bi bi-person-badge me-1"></i>
+                                <?= htmlspecialchars($existingReply['adminName']) ?>
+                                &nbsp;·&nbsp;
+                                <i class="bi bi-clock me-1"></i>
+                                <?= date("M d, Y h:i A", strtotime($existingReply['updatedAt'])) ?>
+                                <?php if ($existingReply['updatedAt'] !== $existingReply['createdAt']): ?>
+                                    <span class="fst-italic">(edited)</span>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+
+                        <!-- Edit form -->
+                        <form method="POST">
+                            <div class="mb-2">
+                                <textarea name="replyText" class="form-control" rows="3"
+                                    placeholder="Edit your reply…"><?= htmlspecialchars($existingReply['reply']) ?></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="saveReply" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-pencil me-1"></i> Update Reply
+                                </button>
+                                <button type="submit" name="deleteReply" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Delete this reply?')">
+                                    <i class="bi bi-trash me-1"></i> Delete Reply
+                                </button>
+                            </div>
+                        </form>
+
+                    <?php else: ?>
+                        <!-- No reply yet -->
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-chat-left-dots me-1"></i>
+                            No reply posted yet. Respond to this customer's review below.
+                        </p>
+                        <form method="POST">
+                            <div class="mb-2">
+                                <textarea name="replyText" class="form-control" rows="3"
+                                    placeholder="Write a reply visible to the customer…"
+                                    required></textarea>
+                            </div>
+                            <button type="submit" name="saveReply" class="btn btn-success btn-sm">
+                                <i class="bi bi-send me-1"></i> Post Reply
+                            </button>
+                        </form>
+                    <?php endif; ?>
+
+                </div>
+            </div>
+
             <!-- PRODUCT INFO -->
             <div class="card">
                 <div class="card-body">
@@ -131,7 +238,7 @@ function renderStars($rating) {
                         <div class="col-md-6">
                             <p class="mb-1 text-muted small">Status</p>
                             <?php
-                            $badge = match($review['productStatus']) {
+                            $badge = match ($review['productStatus']) {
                                 'active'       => 'bg-success',
                                 'inactive'     => 'bg-dark',
                                 'out_of_stock' => 'bg-danger',
@@ -142,56 +249,51 @@ function renderStars($rating) {
                                 <?= ucfirst(str_replace('_', ' ', $review['productStatus'])) ?>
                             </span>
                         </div>
-                        <div class="col-md-6">
-                            <a href="inventory-edit.php?id=<?= $review['productId'] ?>" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-box me-1"></i> View Product
-                            </a>
-                        </div>
                     </div>
 
                 </div>
             </div>
 
-            <!-- LINKED ORDER (if verified purchase) -->
+            <!-- LINKED ORDER -->
             <?php if ($orderInfo): ?>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Verified Purchase <span>| Linked Order</span></h5>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Verified Purchase <span>| Linked Order</span></h5>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <p class="mb-1 text-muted small">Order Number</p>
-                            <p class="fw-semibold">
-                                <a href="order-view.php?id=<?= $orderInfo['orderId'] ?>">
-                                    <?= htmlspecialchars($orderInfo['orderNumber']) ?>
-                                </a>
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-1 text-muted small">Order Status</p>
-                            <p class="fw-semibold"><?= ucfirst($orderInfo['status']) ?></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-1 text-muted small">Total Amount</p>
-                            <p class="fw-semibold">₱<?= number_format($orderInfo['totalAmount'], 2) ?></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-1 text-muted small">Ordered At</p>
-                            <p class="fw-semibold"><?= date("M d, Y", strtotime($orderInfo['orderedAt'])) ?></p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <p class="mb-1 text-muted small">Order Number</p>
+                                <p class="fw-semibold">
+                                    <a href="ordersView.php?id=<?= $orderInfo['orderId'] ?>">
+                                        <?= htmlspecialchars($orderInfo['orderNumber']) ?>
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1 text-muted small">Order Status</p>
+                                <p class="fw-semibold"><?= ucfirst($orderInfo['status']) ?></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1 text-muted small">Total Amount</p>
+                                <p class="fw-semibold">₱<?= number_format($orderInfo['totalAmount'], 2) ?></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1 text-muted small">Ordered At</p>
+                                <p class="fw-semibold"><?= date("M d, Y", strtotime($orderInfo['orderedAt'])) ?></p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <?php else: ?>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Purchase Verification</h5>
-                    <p class="text-muted mb-0">
-                        <i class="bi bi-exclamation-circle me-1"></i>
-                        This review is not linked to a specific order.
-                    </p>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Purchase Verification</h5>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            This review is not linked to a specific order.
+                        </p>
+                    </div>
                 </div>
-            </div>
             <?php endif; ?>
 
         </div>
@@ -204,10 +306,9 @@ function renderStars($rating) {
                 <div class="card-body">
                     <h5 class="card-title">Reviewer</h5>
 
-                    <!-- Avatar -->
-                    <div class="d-flex align-items-center mb-3">
+                    <div class="d-flex align-items-center mb-1">
                         <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
-                             style="width:48px;height:48px;background:#005d21;flex-shrink:0;">
+                            style="width:48px;height:48px;background:#005d21;flex-shrink:0;">
                             <span style="color:#fff;font-weight:700;font-size:16px;">
                                 <?php
                                 $parts = explode(' ', $review['customerName']);
@@ -220,10 +321,6 @@ function renderStars($rating) {
                             <p class="mb-0 text-muted small"><?= htmlspecialchars($review['emailAddress']) ?></p>
                         </div>
                     </div>
-
-                    <a href="customersView.php?id=<?= $review['userId'] ?>" class="btn btn-sm btn-primary w-100">
-                        <i class="bi bi-person me-1"></i> View Customer Profile
-                    </a>
                 </div>
             </div>
 
@@ -241,6 +338,19 @@ function renderStars($rating) {
                 </div>
             </div>
 
+            <!-- REVIEW IMAGE (if any) -->
+            <?php if (!empty($review['imageUrl'])): ?>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Review Photo</h5>
+                        <img src="../../uploads/reviews/<?= htmlspecialchars($review['imageUrl']) ?>"
+                            alt="Review Photo"
+                            class="img-fluid rounded"
+                            style="max-height:250px; object-fit:cover; width:100%;">
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- DANGER ZONE -->
             <div class="card border-danger">
                 <div class="card-body">
@@ -250,7 +360,8 @@ function renderStars($rating) {
                     <p class="text-muted small mb-3">
                         Deleting this review is permanent and cannot be undone.
                     </p>
-                    <form method="POST" onsubmit="return confirm('Are you sure you want to delete this review?');">
+                    <form method="POST"
+                        onsubmit="return confirm('Are you sure you want to delete this review?');">
                         <button type="submit" name="deleteReview" class="btn btn-danger w-100">
                             <i class="bi bi-trash me-1"></i> Delete Review
                         </button>
@@ -258,7 +369,7 @@ function renderStars($rating) {
                 </div>
             </div>
 
-            <div class="d-grid">
+            <div class="d-grid mb-3">
                 <a href="reviews" class="btn btn-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Back to Reviews
                 </a>

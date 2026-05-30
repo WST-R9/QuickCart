@@ -162,7 +162,8 @@ include('./includes/sidebar.php');
                 Refund / Return Request
               </h5>
               <div class="text-muted small mt-1">Submitted on
-                <?= date('F d, Y \a\t h:i A', strtotime($refund['createdAt'])) ?></div>
+                <?= date('F d, Y \a\t h:i A', strtotime($refund['createdAt'])) ?>
+              </div>
             </div>
             <span class="badge <?= $statusBadge ?> fs-6"><?= ucfirst($refund['status']) ?></span>
           </div>
@@ -171,7 +172,8 @@ include('./includes/sidebar.php');
             <div class="col-sm-6">
               <div class="text-muted small mb-1">Reason</div>
               <div class="fw-semibold">
-                <?= $reasonLabels[$refund['reason']] ?? ucfirst(str_replace('_', ' ', $refund['reason'])) ?></div>
+                <?= $reasonLabels[$refund['reason']] ?? ucfirst(str_replace('_', ' ', $refund['reason'])) ?>
+              </div>
             </div>
             <div class="col-sm-6">
               <div class="text-muted small mb-1">Refund Method</div>
@@ -185,7 +187,8 @@ include('./includes/sidebar.php');
                   <?php if (!empty($refund['refundAccountType'])): ?>
                     <div class="small mb-1">
                       <span class="text-muted">Type:</span>
-                      <span class="fw-semibold ms-1"><?= ucwords(str_replace('_', ' ', $refund['refundAccountType'])) ?></span>
+                      <span
+                        class="fw-semibold ms-1"><?= ucwords(str_replace('_', ' ', $refund['refundAccountType'])) ?></span>
                     </div>
                   <?php endif; ?>
                   <?php if (!empty($refund['refundAccountName'])): ?>
@@ -420,19 +423,11 @@ include('./includes/sidebar.php');
         </div>
       </div>
 
-      <!-- Quick Links -->
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title"><i class="bi bi-link-45deg me-2 text-success"></i>Quick Links</h5>
-          <div class="d-grid gap-2">
-            <a href="orderView?id=<?= $refund['orderId'] ?>" class="btn btn-outline-success btn-sm">
-              <i class="bi bi-bag me-1"></i>View Full Order
-            </a>
-            <a href="refunds" class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-arrow-left me-1"></i>Back to Refund Requests
-            </a>
-          </div>
-        </div>
+      <!-- Return Button -->
+      <div class="d-grid mb-3">
+        <a href="refunds" class="btn btn-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Back to Refund Requests
+        </a>
       </div>
 
     </div>

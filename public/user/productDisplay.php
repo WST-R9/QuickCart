@@ -36,11 +36,15 @@ if (!$product) {
     exit;
 }
 
-// Fetch reviews
+// Fetch reviews WITH admin replies
 $stmtRev = $conn->prepare(
-    "SELECT r.*, u.firstName, u.lastName
+    "SELECT r.*, u.firstName, u.lastName,
+            rr.reply AS adminReply, rr.createdAt AS replyCreatedAt,
+            au.firstName AS adminFirstName, au.lastName AS adminLastName
      FROM reviews r
      JOIN users u ON r.userId = u.userId
+     LEFT JOIN review_replies rr ON rr.reviewId = r.reviewId
+     LEFT JOIN users au ON rr.adminId = au.userId
      WHERE r.productId = ?
      ORDER BY r.createdAt DESC"
 );
@@ -133,6 +137,11 @@ if ($product['stock'] == 0) {
 $successMsg = $_SESSION['success'] ?? '';
 $errorMsg   = $_SESSION['error'] ?? '';
 unset($_SESSION['success'], $_SESSION['error']);
+
+// Suppress the "already reviewed" flash so it doesn't show on page load
+if ($userReview && str_contains($successMsg, 'already reviewed')) {
+    $successMsg = '';
+}
 ?>
 
 <div class="pagetitle">
@@ -182,9 +191,8 @@ unset($_SESSION['success'], $_SESSION['error']);
                             <span class="badge bg-danger product-display-badge">Out of Stock</span>
                         <?php endif; ?>
                         <img src="../uploads/products/<?= htmlspecialchars($product['imageUrl'] ?? '') ?>"
-                             alt="<?= htmlspecialchars($product['name']) ?>"
-                             class="product-display-img"
-                             onerror="this.src='assets/img/product-placeholder.png'">
+                            alt="<?= htmlspecialchars($product['name']) ?>" class="product-display-img"
+                            onerror="this.src='assets/img/product-placeholder.png'">
                     </div>
                 </div>
 
@@ -193,8 +201,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 
                     <!-- Category Badge -->
                     <div class="mb-2">
-                        <span class="badge rounded-pill"
-                              style="background:#e8f5e9; color:#2e7d32; font-size:12px;">
+                        <span class="badge rounded-pill" style="background:#e8f5e9; color:#2e7d32; font-size:12px;">
                             <?= htmlspecialchars($product['categoryName'] ?? 'General') ?>
                         </span>
                     </div>
@@ -209,13 +216,14 @@ unset($_SESSION['success'], $_SESSION['error']);
                             <div>
                                 <?php for ($i = 1; $i <= 5; $i++): ?>
                                     <i class="bi bi-star<?= $i <= round($avgRating) ? '-fill' : '' ?>"
-                                       style="color:#f59e0b; font-size:15px;"></i>
+                                        style="color:#f59e0b; font-size:15px;"></i>
                                 <?php endfor; ?>
                             </div>
                             <span class="fw-semibold" style="color:#f59e0b;"><?= number_format($avgRating, 1) ?></span>
-                            <span class="text-muted small">(<?= $totalReviews ?> review<?= $totalReviews !== 1 ? 's' : '' ?>)</span>
+                            <span class="text-muted small">(<?= $totalReviews ?>
+                                review<?= $totalReviews !== 1 ? 's' : '' ?>)</span>
                             <a href="#" onclick="document.getElementById('reviews-tab').click(); return false;"
-                               class="small" style="color:#005d21;">See all</a>
+                                class="small" style="color:#005d21;">See all</a>
                         </div>
                     <?php else: ?>
                         <div class="mb-2">
@@ -250,31 +258,29 @@ unset($_SESSION['success'], $_SESSION['error']);
                     <!-- Quantity + Add to Cart -->
                     <?php if ($product['stock'] > 0): ?>
                         <form action="../../app/controllers/cartController.php" method="POST"
-                              class="d-flex align-items-center gap-3 flex-wrap mb-3">
+                            class="d-flex align-items-center gap-3 flex-wrap mb-3">
                             <input type="hidden" name="productId" value="<?= (int) $productId ?>">
 
                             <!-- Quantity Stepper -->
                             <div class="d-flex align-items-center border rounded-3 overflow-hidden"
-                                 style="border-color:#d4e8da !important;">
-                                <button type="button" class="btn btn-light border-0 px-3 py-2 qty-btn"
-                                        data-action="dec" style="font-size:18px; line-height:1;">&#8722;</button>
-                                <input type="number" name="quantity" id="qtyInput" value="1"
-                                       min="1" max="<?= $product['stock'] ?>"
-                                       class="form-control border-0 text-center fw-bold"
-                                       style="width:60px; box-shadow:none; font-size:15px;">
-                                <button type="button" class="btn btn-light border-0 px-3 py-2 qty-btn"
-                                        data-action="inc" style="font-size:18px; line-height:1;">+</button>
+                                style="border-color:#d4e8da !important;">
+                                <button type="button" class="btn btn-light border-0 px-3 py-2 qty-btn" data-action="dec"
+                                    style="font-size:18px; line-height:1;">&#8722;</button>
+                                <input type="number" name="quantity" id="qtyInput" value="1" min="1"
+                                    max="<?= $product['stock'] ?>" class="form-control border-0 text-center fw-bold"
+                                    style="width:60px; box-shadow:none; font-size:15px;">
+                                <button type="button" class="btn btn-light border-0 px-3 py-2 qty-btn" data-action="inc"
+                                    style="font-size:18px; line-height:1;">+</button>
                             </div>
 
-                            <button type="submit" name="addToCart"
-                                    class="btn btn-primary btn-lg px-4"
-                                    style="background:#005d21; border-color:#005d21; border-radius:10px;">
+                            <button type="submit" name="addToCart" class="btn btn-primary btn-lg px-4"
+                                style="background:#005d21; border-color:#005d21; border-radius:10px;">
                                 <i class="bi bi-cart-plus me-2"></i>Add to Cart
                             </button>
 
-                            <a href="checkout?buyNow=<?= $productId ?>"
-                               class="btn btn-success btn-lg px-4"
-                               style="border-radius:10px; background:#1b5e20; border-color:#1b5e20;">
+                            <a href="../../app/controllers/buyNowController.php?buyNow=<?= $productId ?>"
+                                class="btn btn-success btn-lg px-4"
+                                style="border-radius:10px; background:#1b5e20; border-color:#1b5e20;">
                                 <i class="bi bi-lightning-fill me-2"></i>Buy Now
                             </a>
                         </form>
@@ -289,12 +295,11 @@ unset($_SESSION['success'], $_SESSION['error']);
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                         <form action="../../app/controllers/wishlistController.php" method="POST">
                             <input type="hidden" name="productId" value="<?= $productId ?>">
-                            <button type="submit"
-                                    name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
-                                    class="btn btn-sm d-flex align-items-center gap-2"
-                                    style="border:1px solid <?= $inWishlist ? '#e53935' : '#dee2e6' ?>;
-                                           color:<?= $inWishlist ? '#e53935' : '#666' ?>;
-                                           border-radius:8px; padding:6px 14px;">
+                            <button type="submit" name="<?= $inWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
+                                class="btn btn-sm d-flex align-items-center gap-2"
+                                style="border:1px solid <?= $inWishlist ? '#e53935' : '#dee2e6' ?>;
+                                       color:<?= $inWishlist ? '#e53935' : '#666' ?>;
+                                       border-radius:8px; padding:6px 14px;">
                                 <i class="bi <?= $inWishlist ? 'bi-heart-fill' : 'bi-heart' ?>"></i>
                                 <span class="small fw-semibold">
                                     <?= $inWishlist ? 'Wishlisted' : 'Add to Wishlist' ?>
@@ -303,10 +308,10 @@ unset($_SESSION['success'], $_SESSION['error']);
                         </form>
 
                         <button class="btn btn-sm btn-light d-flex align-items-center gap-2"
-                                style="border-radius:8px; border:1px solid #dee2e6;"
-                                onclick="navigator.clipboard.writeText(window.location.href);
-                                         this.innerHTML='<i class=\'bi bi-check2\' style=\'color:#005d21\'></i><span class=\'small fw-semibold\' style=\'color:#005d21\'>Copied!</span>';
-                                         setTimeout(()=>this.innerHTML='<i class=\'bi bi-link-45deg\'></i><span class=\'small fw-semibold\'>Copy Link</span>',2000);">
+                            style="border-radius:8px; border:1px solid #dee2e6;"
+                            onclick="navigator.clipboard.writeText(window.location.href);
+                                     this.innerHTML='<i class=\'bi bi-check2\' style=\'color:#005d21\'></i><span class=\'small fw-semibold\' style=\'color:#005d21\'>Copied!</span>';
+                                     setTimeout(()=>this.innerHTML='<i class=\'bi bi-link-45deg\'></i><span class=\'small fw-semibold\'>Copy Link</span>',2000);">
                             <i class="bi bi-link-45deg"></i>
                             <span class="small fw-semibold">Copy Link</span>
                         </button>
@@ -320,27 +325,26 @@ unset($_SESSION['success'], $_SESSION['error']);
     <!-- ======== Tabs ======== -->
     <div class="card mb-4">
         <div class="card-body">
-            <ul class="nav nav-tabs" id="productTabs" role="tablist"
-                style="border-bottom:2px solid #e8f5e9;">
+            <ul class="nav nav-tabs" id="productTabs" role="tablist" style="border-bottom:2px solid #e8f5e9;">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-semibold" id="desc-tab"
-                            data-bs-toggle="tab" data-bs-target="#desc" type="button" role="tab">
+                    <button class="nav-link active fw-semibold" id="desc-tab" data-bs-toggle="tab"
+                        data-bs-target="#desc" type="button" role="tab">
                         <i class="bi bi-file-text me-1"></i>Description
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-semibold" id="details-tab"
-                            data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                    <button class="nav-link fw-semibold" id="details-tab" data-bs-toggle="tab"
+                        data-bs-target="#details" type="button" role="tab">
                         <i class="bi bi-info-circle me-1"></i>Details
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-semibold" id="reviews-tab"
-                            data-bs-toggle="tab" data-bs-target="#reviews-section" type="button" role="tab">
+                    <button class="nav-link fw-semibold" id="reviews-tab" data-bs-toggle="tab"
+                        data-bs-target="#reviews-section" type="button" role="tab">
                         <i class="bi bi-star me-1"></i>Reviews
                         <?php if ($totalReviews > 0): ?>
                             <span class="badge rounded-pill ms-1"
-                                  style="background:#e8f5e9; color:#2e7d32; font-size:11px;">
+                                style="background:#e8f5e9; color:#2e7d32; font-size:11px;">
                                 <?= $totalReviews ?>
                             </span>
                         <?php endif; ?>
@@ -407,7 +411,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </div>
                 </div>
 
-                <!-- Reviews -->
+                <!-- ======== Reviews Tab ======== -->
                 <div class="tab-pane fade" id="reviews-section" role="tabpanel">
 
                     <!-- Write a Review (eligible + not yet reviewed) -->
@@ -418,9 +422,9 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     <i class="bi bi-pencil-square me-2"></i>Write a Review
                                 </h6>
                                 <form action="../../app/controllers/reviewController.php" method="POST"
-                                      enctype="multipart/form-data">
+                                    enctype="multipart/form-data">
                                     <input type="hidden" name="productId" value="<?= $productId ?>">
-                                    <input type="hidden" name="orderId"   value="<?= $eligibleOrder['orderId'] ?>">
+                                    <input type="hidden" name="orderId" value="<?= $eligibleOrder['orderId'] ?>">
 
                                     <!-- Star Picker -->
                                     <div class="mb-3">
@@ -430,7 +434,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                         <div class="d-flex gap-1" id="starPicker">
                                             <?php for ($s = 1; $s <= 5; $s++): ?>
                                                 <i class="bi bi-star star-pick" data-val="<?= $s ?>"
-                                                   style="font-size:28px; color:#ddd; cursor:pointer; transition:color .15s;"></i>
+                                                    style="font-size:28px; color:#ddd; cursor:pointer; transition:color .15s;"></i>
                                             <?php endfor; ?>
                                         </div>
                                         <input type="hidden" name="rating" id="ratingInput" value="">
@@ -443,30 +447,23 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold small">Comment (optional)</label>
                                         <textarea name="comment" rows="3" class="form-control"
-                                                  style="border-color:#d4e8da; border-radius:8px;"
-                                                  placeholder="Share your experience with this product&#8230;"></textarea>
+                                            style="border-color:#d4e8da; border-radius:8px;"
+                                            placeholder="Share your experience with this product&#8230;"></textarea>
                                     </div>
 
                                     <!-- Photo -->
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold small">Photo (optional)</label>
-                                        <input type="file" name="reviewImage" accept="image/*"
-                                               class="form-control" style="border-color:#d4e8da; border-radius:8px;">
+                                        <input type="file" name="reviewImage" accept="image/*" class="form-control"
+                                            style="border-color:#d4e8da; border-radius:8px;">
                                     </div>
 
-                                    <button type="submit" name="submitReview" id="submitReviewBtn"
-                                            class="btn btn-primary"
-                                            style="background:#005d21; border-color:#005d21; border-radius:8px;">
+                                    <button type="submit" name="submitReview" id="submitReviewBtn" class="btn btn-primary"
+                                        style="background:#005d21; border-color:#005d21; border-radius:8px;">
                                         <i class="bi bi-send me-1"></i> Submit Review
                                     </button>
                                 </form>
                             </div>
-                        </div>
-                    <?php elseif ($userReview): ?>
-                        <div class="alert d-flex align-items-center gap-2 mb-4"
-                             style="background:#e8f5e9; border:1px solid #a5d6a7; color:#1b5e20; border-radius:8px;">
-                            <i class="bi bi-check-circle-fill"></i>
-                            You have already reviewed this product. Thank you for your feedback!
                         </div>
                     <?php endif; ?>
 
@@ -480,7 +477,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                 <div class="mb-1">
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <i class="bi bi-star<?= $i <= round($avgRating) ? '-fill' : '' ?>"
-                                           style="color:#f59e0b;"></i>
+                                            style="color:#f59e0b;"></i>
                                     <?php endfor; ?>
                                 </div>
                                 <div class="text-muted small">
@@ -495,7 +492,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                         <i class="bi bi-star-fill" style="color:#f59e0b; font-size:11px;"></i>
                                         <div class="progress flex-grow-1" style="height:8px; border-radius:10px;">
                                             <div class="progress-bar" role="progressbar"
-                                                 style="width:<?= $pct ?>%; background:#f59e0b; border-radius:10px;"></div>
+                                                style="width:<?= $pct ?>%; background:#f59e0b; border-radius:10px;"></div>
                                         </div>
                                         <span class="text-muted small" style="width:24px;"><?= $ratingCounts[$star] ?></span>
                                     </div>
@@ -509,12 +506,14 @@ unset($_SESSION['success'], $_SESSION['error']);
                         <?php foreach ($reviews as $review): ?>
                             <div class="py-3" style="border-bottom:1px solid #f0f0f0;">
                                 <div class="d-flex align-items-start gap-3">
+                                    <!-- Avatar -->
                                     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                         style="width:42px; height:42px; background:#e8f5e9;
-                                                font-weight:700; color:#005d21; font-size:15px;">
+                                        style="width:42px; height:42px; background:#e8f5e9;
+                                               font-weight:700; color:#005d21; font-size:15px;">
                                         <?= strtoupper(substr($review['firstName'], 0, 1)) ?>
                                     </div>
                                     <div class="flex-grow-1">
+                                        <!-- Reviewer name + stars + date -->
                                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                                             <span class="fw-semibold" style="color:#1a1a2e;">
                                                 <?= htmlspecialchars($review['firstName'] . ' ' . $review['lastName']) ?>
@@ -522,17 +521,19 @@ unset($_SESSION['success'], $_SESSION['error']);
                                             <div>
                                                 <?php for ($i = 1; $i <= 5; $i++): ?>
                                                     <i class="bi bi-star<?= $i <= $review['rating'] ? '-fill' : '' ?>"
-                                                       style="color:#f59e0b; font-size:12px;"></i>
+                                                        style="color:#f59e0b; font-size:12px;"></i>
                                                 <?php endfor; ?>
                                             </div>
                                             <span class="badge rounded-pill"
-                                                  style="background:#fff3e0; color:#e65100; font-size:11px;">
+                                                style="background:#fff3e0; color:#e65100; font-size:11px;">
                                                 <?= $review['rating'] ?>/5
                                             </span>
                                             <span class="text-muted small ms-auto">
                                                 <?= date('M j, Y', strtotime($review['createdAt'])) ?>
                                             </span>
                                         </div>
+
+                                        <!-- Comment -->
                                         <?php if ($review['comment']): ?>
                                             <p class="mb-1 text-muted" style="font-size:14px; line-height:1.6;">
                                                 <?= nl2br(htmlspecialchars($review['comment'])) ?>
@@ -540,15 +541,44 @@ unset($_SESSION['success'], $_SESSION['error']);
                                         <?php else: ?>
                                             <p class="mb-1 text-muted fst-italic small">No written review.</p>
                                         <?php endif; ?>
+
+                                        <!-- Review photo -->
                                         <?php if ($review['imageUrl']): ?>
                                             <div class="mt-2">
                                                 <img src="../uploads/reviews/<?= htmlspecialchars($review['imageUrl']) ?>"
-                                                     alt="Review photo"
-                                                     style="max-width:120px; border-radius:8px;
-                                                            border:1px solid #dee2e6; cursor:pointer;"
-                                                     onclick="window.open(this.src)">
+                                                    alt="Review photo"
+                                                    style="max-width:120px; border-radius:8px;
+                                                           border:1px solid #dee2e6; cursor:pointer;"
+                                                    onclick="window.open(this.src)">
                                             </div>
                                         <?php endif; ?>
+
+                                        <!-- Admin Reply -->
+                                        <?php if (!empty($review['adminReply'])): ?>
+                                            <div class="mt-3 p-3 rounded-3 d-flex gap-2"
+                                                style="background:#f0f7f2; border-left:3px solid #005d21;">
+                                                <i class="bi bi-shield-check-fill mt-1 flex-shrink-0"
+                                                    style="color:#005d21; font-size:15px;"></i>
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                        <span class="fw-semibold small" style="color:#005d21;">
+                                                            <?= htmlspecialchars($review['adminFirstName'] . ' ' . $review['adminLastName']) ?>
+                                                        </span>
+                                                        <span class="badge rounded-pill"
+                                                            style="background:#e8f5e9; color:#2e7d32; font-size:10px;">
+                                                            Store Admin
+                                                        </span>
+                                                        <span class="text-muted small ms-auto">
+                                                            <?= date('M j, Y', strtotime($review['replyCreatedAt'])) ?>
+                                                        </span>
+                                                    </div>
+                                                    <p class="mb-0 small" style="color:#2d4a36; line-height:1.6;">
+                                                        <?= nl2br(htmlspecialchars($review['adminReply'])) ?>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
                                     </div>
                                 </div>
                             </div>
@@ -567,9 +597,8 @@ unset($_SESSION['success'], $_SESSION['error']);
                     <?php endif; ?>
 
                     <!-- Not eligible notice -->
-                    <?php if (!$eligibleOrder && !$userReview): ?>
-                        <div class="mt-3 p-3 rounded-3"
-                             style="background:#f8f9fa; border:1px dashed #dee2e6;">
+                    <?php if (!$eligibleOrder): ?>
+                        <div class="mt-3 p-3 rounded-3" style="background:#f8f9fa; border:1px dashed #dee2e6;">
                             <div class="d-flex align-items-center gap-3">
                                 <i class="bi bi-bag-check" style="font-size:24px; color:#005d21;"></i>
                                 <p class="mb-0 small text-muted">
@@ -602,8 +631,8 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     <?php endif; ?>
                                     <a href="productDisplay.php?id=<?= (int) $rel['productId'] ?>">
                                         <img src="../uploads/products/<?= htmlspecialchars($rel['imageUrl'] ?? '') ?>"
-                                             alt="<?= htmlspecialchars($rel['name']) ?>"
-                                             onerror="this.src='assets/img/product-placeholder.png'">
+                                            alt="<?= htmlspecialchars($rel['name']) ?>"
+                                            onerror="this.src='assets/img/product-placeholder.png'">
                                     </a>
                                 </div>
                                 <div class="product-body">
@@ -612,7 +641,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     </div>
                                     <div class="product-name">
                                         <a href="productDisplay.php?id=<?= (int) $rel['productId'] ?>"
-                                           style="text-decoration:none; color:inherit;">
+                                            style="text-decoration:none; color:inherit;">
                                             <?= htmlspecialchars($rel['name']) ?>
                                         </a>
                                     </div>
@@ -622,7 +651,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                                     </div>
                                     <div class="d-flex gap-2 mt-2 align-items-stretch">
                                         <form action="../../app/controllers/cartController.php" method="POST"
-                                              class="flex-grow-1">
+                                            class="flex-grow-1">
                                             <input type="hidden" name="productId" value="<?= (int) $rel['productId'] ?>">
                                             <input type="hidden" name="quantity" value="1">
                                             <button type="submit" name="addToCart" class="btn-add-cart w-100">
@@ -630,15 +659,15 @@ unset($_SESSION['success'], $_SESSION['error']);
                                             </button>
                                         </form>
                                         <form action="../../app/controllers/wishlistController.php" method="POST"
-                                              class="d-flex align-items-center">
+                                            class="d-flex align-items-center">
                                             <input type="hidden" name="productId" value="<?= $rel['productId'] ?>">
                                             <button type="submit"
-                                                    name="<?= $relInWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
-                                                    class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $relInWishlist ? 'wishlisted' : '' ?>"
-                                                    style="width:36px;height:36px;padding:0;border:1px solid #dee2e6;flex-shrink:0;"
-                                                    title="<?= $relInWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
+                                                name="<?= $relInWishlist ? 'removeFromWishlist' : 'addToWishlist' ?>"
+                                                class="btn btn-sm btn-light rounded-circle wishlist-btn <?= $relInWishlist ? 'wishlisted' : '' ?>"
+                                                style="width:36px;height:36px;padding:0;border:1px solid #dee2e6;flex-shrink:0;"
+                                                title="<?= $relInWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>">
                                                 <i class="bi <?= $relInWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-muted' ?>"
-                                                   style="font-size:13px;"></i>
+                                                    style="font-size:13px;"></i>
                                             </button>
                                         </form>
                                     </div>
@@ -653,99 +682,53 @@ unset($_SESSION['success'], $_SESSION['error']);
 
 </section>
 
-<style>
-.product-display-img-wrap {
-    position: relative;
-    background: #f8fdf9;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid #e8f5e9;
-    aspect-ratio: 1/1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.product-display-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 16px;
-    transition: transform 0.3s ease;
-}
-.product-display-img:hover { transform: scale(1.04); }
-.product-display-badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 2;
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 20px;
-}
-.product-display-price {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #005d21;
-    letter-spacing: -0.5px;
-}
-.nav-tabs .nav-link.active {
-    color: #005d21 !important;
-    border-bottom: 2px solid #005d21 !important;
-    background: transparent;
-}
-.nav-tabs .nav-link:hover { color: #005d21 !important; }
-.star-pick { transition: color .15s; }
-.star-pick:hover { color: #f59e0b !important; }
-</style>
-
 <script>
-// Quantity stepper
-document.querySelectorAll('.qty-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const input = document.getElementById('qtyInput');
-        const max   = parseInt(input.max) || 99;
-        let val     = parseInt(input.value) || 1;
-        val = btn.dataset.action === 'inc' ? Math.min(val + 1, max) : Math.max(val - 1, 1);
-        input.value = val;
-    });
-});
-
-// Star rating picker
-(function () {
-    const stars  = document.querySelectorAll('.star-pick');
-    const hidden = document.getElementById('ratingInput');
-    if (!stars.length) return;
-
-    function paint(n) {
-        stars.forEach((s, i) => {
-            s.classList.toggle('bi-star-fill', i < n);
-            s.classList.toggle('bi-star',      i >= n);
-            s.style.color = i < n ? '#f59e0b' : '#ddd';
-        });
-    }
-
-    stars.forEach((s, idx) => {
-        s.addEventListener('mouseenter', () => paint(idx + 1));
-        s.addEventListener('mouseleave', () => paint(parseInt(hidden.value) || 0));
-        s.addEventListener('click', () => {
-            hidden.value = idx + 1;
-            paint(idx + 1);
-            document.getElementById('ratingError').style.display = 'none';
+    // Quantity stepper
+    document.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = document.getElementById('qtyInput');
+            const max = parseInt(input.max) || 99;
+            let val = parseInt(input.value) || 1;
+            val = btn.dataset.action === 'inc' ? Math.min(val + 1, max) : Math.max(val - 1, 1);
+            input.value = val;
         });
     });
 
-    // Validate star rating before submit
-    const form = document.getElementById('submitReviewBtn');
-    if (form) {
-        form.closest('form').addEventListener('submit', function (e) {
-            if (!hidden.value) {
-                e.preventDefault();
-                document.getElementById('ratingError').style.display = 'block';
-                document.getElementById('starPicker').scrollIntoView({ behavior: 'smooth' });
-            }
+    // Star rating picker
+    (function () {
+        const stars = document.querySelectorAll('.star-pick');
+        const hidden = document.getElementById('ratingInput');
+        if (!stars.length) return;
+
+        function paint(n) {
+            stars.forEach((s, i) => {
+                s.classList.toggle('bi-star-fill', i < n);
+                s.classList.toggle('bi-star', i >= n);
+                s.style.color = i < n ? '#f59e0b' : '#ddd';
+            });
+        }
+
+        stars.forEach((s, idx) => {
+            s.addEventListener('mouseenter', () => paint(idx + 1));
+            s.addEventListener('mouseleave', () => paint(parseInt(hidden.value) || 0));
+            s.addEventListener('click', () => {
+                hidden.value = idx + 1;
+                paint(idx + 1);
+                document.getElementById('ratingError').style.display = 'none';
+            });
         });
-    }
-})();
+
+        const form = document.getElementById('submitReviewBtn');
+        if (form) {
+            form.closest('form').addEventListener('submit', function (e) {
+                if (!hidden.value) {
+                    e.preventDefault();
+                    document.getElementById('ratingError').style.display = 'block';
+                    document.getElementById('starPicker').scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+    })();
 </script>
 
 <?php include('includes/footer.php'); ?>

@@ -1,7 +1,10 @@
 <!-- ======= Header/Topbar ======= -->
 <?php
 include_once(__DIR__ . '/../../../app/helpers/notifications.php');
-$adminNotifCount = getUnreadCount($conn, null, 'admin');
+
+// Guard: only fetch count if not already set by the including page (e.g. notifications.php sets it before marking as read)
+$adminNotifCount = $adminNotifCount ?? getUnreadCount($conn, null, 'admin');
+
 $nr = $conn->query("SELECT * FROM notifications WHERE role='admin' AND isRead=0 ORDER BY createdAt DESC LIMIT 6");
 $adminNotifs = $nr ? $nr->fetch_all(MYSQLI_ASSOC) : [];
 $role = $_SESSION['userRole'] ?? 'customer';
@@ -12,6 +15,7 @@ $roleBadge = match (strtolower($role)) {
 };
 [$badgeClass, $badgeIcon, $badgeLabel] = $roleBadge;
 ?>
+
 <header id="header" class="header fixed-top d-flex align-items-center">
 
   <div class="d-flex align-items-center justify-content-between">
@@ -32,7 +36,7 @@ $roleBadge = match (strtolower($role)) {
   <nav class="header-nav ms-auto">
     <ul class="d-flex align-items-center">
 
-      <!-- Profile Dropdown -->
+      <!-- Notification Bell -->
       <li class="nav-item dropdown">
         <a class="nav-link nav-icon position-relative" href="notifications" data-bs-toggle="dropdown"
           title="Notifications">
@@ -105,7 +109,7 @@ $roleBadge = match (strtolower($role)) {
           <?php endif; ?>
         </ul>
       </li>
-      <!-- END NOTIFICATION BELL SNIPPET -->
+      <!-- END NOTIFICATION BELL -->
 
       <li class="nav-item dropdown pe-3">
 

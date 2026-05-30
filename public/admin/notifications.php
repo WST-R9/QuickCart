@@ -3,7 +3,11 @@ include_once("../../app/middleware/admin.php");
 include_once("../../app/config/config.php");
 include_once("../../app/helpers/notifications.php");
 
-// Mark all admin notifs as read
+// Capture unread count BEFORE marking as read
+// so topbar.php still shows the badge on this page load
+$adminNotifCount = getUnreadCount($conn, null, 'admin');
+
+// Now mark all as read
 markAllRead($conn, null, 'admin');
 
 $notifs = $conn->query("SELECT * FROM notifications WHERE role='admin' ORDER BY createdAt DESC LIMIT 100")->fetch_all(MYSQLI_ASSOC);

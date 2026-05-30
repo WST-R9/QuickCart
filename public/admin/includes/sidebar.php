@@ -121,17 +121,6 @@
       </a>
     </li>
 
-
-    <li class="nav-heading">Accounts</li>
-
-    <!-- Accounts -->
-    <li class="nav-item">
-      <a class="nav-link <?= ($page == 'accounts.php') ? '' : "collapsed" ?> " href="accounts">
-        <i class="bi bi-person-gear"></i>
-        <span>Account Settings</span>
-      </a>
-    </li>
-
   </ul>
 
 </aside><!-- End Sidebar-->

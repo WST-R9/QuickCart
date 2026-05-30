@@ -38,12 +38,12 @@ if (mysqli_num_rows($shippingResult) == 0) {
 
 $shipping = mysqli_fetch_assoc($shippingResult);
 
-$itemsQuery  = "SELECT * FROM orderitems WHERE orderId = {$shipping['orderId']}";
+$itemsQuery = "SELECT * FROM orderitems WHERE orderId = {$shipping['orderId']}";
 $itemsResult = mysqli_query($conn, $itemsQuery);
 
-$paymentQuery  = "SELECT * FROM payments WHERE orderId = {$shipping['orderId']} LIMIT 1";
+$paymentQuery = "SELECT * FROM payments WHERE orderId = {$shipping['orderId']} LIMIT 1";
 $paymentResult = mysqli_query($conn, $paymentQuery);
-$payment       = mysqli_fetch_assoc($paymentResult);
+$payment = mysqli_fetch_assoc($paymentResult);
 
 $isCancelled = in_array($shipping['orderStatus'], ['cancelled', 'refunded']);
 ?>
@@ -62,12 +62,15 @@ $isCancelled = in_array($shipping['orderStatus'], ['cancelled', 'refunded']);
 <section class="section dashboard">
 
     <?php if ($isCancelled): ?>
-    <div class="alert alert-<?= $shipping['orderStatus'] === 'refunded' ? 'secondary' : 'danger' ?> d-flex align-items-center mb-3" role="alert">
-        <i class="bi bi-<?= $shipping['orderStatus'] === 'refunded' ? 'arrow-counterclockwise' : 'x-circle' ?> me-2 fs-5"></i>
-        <div>
-            This order has been <strong><?= ucfirst($shipping['orderStatus']) ?></strong> — the shipment was not completed.
+        <div class="alert alert-<?= $shipping['orderStatus'] === 'refunded' ? 'secondary' : 'danger' ?> d-flex align-items-center mb-3"
+            role="alert">
+            <i
+                class="bi bi-<?= $shipping['orderStatus'] === 'refunded' ? 'arrow-counterclockwise' : 'x-circle' ?> me-2 fs-5"></i>
+            <div>
+                This order has been <strong><?= ucfirst($shipping['orderStatus']) ?></strong> — the shipment was not
+                completed.
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <div class="row">
@@ -173,7 +176,8 @@ $isCancelled = in_array($shipping['orderStatus'], ['cancelled', 'refunded']);
             <!-- ORDER ITEMS -->
             <div class="card recent-sales overflow-auto">
                 <div class="card-body">
-                    <h5 class="card-title">Order Items <span>| <?= htmlspecialchars($shipping['orderNumber']) ?></span></h5>
+                    <h5 class="card-title">Order Items <span>| <?= htmlspecialchars($shipping['orderNumber']) ?></span>
+                    </h5>
 
                     <table class="table table-borderless">
                         <thead>
@@ -222,63 +226,48 @@ $isCancelled = in_array($shipping['orderStatus'], ['cancelled', 'refunded']);
                     <h5 class="card-title">Customer</h5>
                     <p class="mb-1"><strong>Name:</strong> <?= htmlspecialchars($shipping['customerName']) ?></p>
                     <p class="mb-1"><strong>Email:</strong> <?= htmlspecialchars($shipping['emailAddress']) ?></p>
-                    <p class="mb-3"><strong>Phone:</strong> <?= htmlspecialchars($shipping['customerPhone']) ?></p>
-                    <a href="customersView.php?id=<?= $shipping['userId'] ?>" class="btn btn-sm btn-primary">
-                        <i class="bi bi-person me-1"></i> View Customer
-                    </a>
+                    <p class="mb-1"><strong>Phone:</strong> <?= htmlspecialchars($shipping['customerPhone']) ?></p>
                 </div>
             </div>
 
             <!-- PAYMENT SNAPSHOT -->
             <?php if ($payment): ?>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Payment</h5>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Payment</h5>
 
-                    <?php if ($isCancelled && $payment['status'] === 'pending'): ?>
-                        <p class="text-muted small mb-2">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Order was <?= ucfirst($shipping['orderStatus']) ?> — payment was never collected.
-                        </p>
-                    <?php endif; ?>
+                        <?php if ($isCancelled && $payment['status'] === 'pending'): ?>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Order was <?= ucfirst($shipping['orderStatus']) ?> — payment was never collected.
+                            </p>
+                        <?php endif; ?>
 
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between px-0">
-                            <span class="text-muted">Method</span>
-                            <span class="fw-semibold"><?= strtoupper(str_replace('_', ' ', $payment['method'])) ?></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between px-0">
-                            <span class="text-muted">Status</span>
-                            <span class="badge <?= paymentBadge($payment['status']) ?>"><?= ucfirst($payment['status']) ?></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between px-0">
-                            <span class="text-muted">Amount</span>
-                            <span class="fw-semibold text-success">₱<?= number_format($payment['amount'], 2) ?></span>
-                        </li>
-                    </ul>
-
-                    <div class="mt-3">
-                        <a href="paymentsView.php?id=<?= $payment['paymentId'] ?>" class="btn btn-sm btn-outline-primary w-100">
-                            <i class="bi bi-eye me-1"></i> View Payment
-                        </a>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Method</span>
+                                <span
+                                    class="fw-semibold"><?= strtoupper(str_replace('_', ' ', $payment['method'])) ?></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Status</span>
+                                <span
+                                    class="badge <?= paymentBadge($payment['status']) ?>"><?= ucfirst($payment['status']) ?></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="text-muted">Amount</span>
+                                <span class="fw-semibold text-success">₱<?= number_format($payment['amount'], 2) ?></span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-            </div>
             <?php endif; ?>
 
-            <!-- QUICK LINKS -->
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Quick Links</h5>
-                    <div class="d-grid gap-2">
-                        <a href="ordersView.php?id=<?= $shipping['orderId'] ?>" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-bag-check me-1"></i> View Order
-                        </a>
-                        <a href="shipping" class="btn btn-secondary btn-sm">
-                            <i class="bi bi-arrow-left me-1"></i> Back to Shipping
-                        </a>
-                    </div>
-                </div>
+            <!-- Return Button -->
+            <div class="d-grid mb-3">
+                <a href="shipping" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Shipping
+                </a>
             </div>
 
         </div>

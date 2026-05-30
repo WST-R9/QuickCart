@@ -686,6 +686,75 @@ h6 {
   font-weight: 500;
 }
 
+/*================
+PRODUCT DISPLAY PAGE
+=================*/
+
+.product-display-img-wrap {
+  position: relative;
+  background: #f8fdf9;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e8f5e9;
+  aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 420px;
+  /* ← add this */
+  width: 100%;
+  /* ← add this */
+}
+
+.product-display-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 16px;
+  transition: transform 0.3s ease;
+  max-height: 420px;
+  /* ← add this */
+}
+
+.product-display-img:hover {
+  transform: scale(1.04);
+}
+
+.product-display-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.product-display-price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #005d21;
+  letter-spacing: -0.5px;
+}
+
+.nav-tabs .nav-link.active {
+  color: #005d21 !important;
+  border-bottom: 2px solid #005d21 !important;
+  background: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #005d21 !important;
+}
+
+.star-pick {
+  transition: color .15s;
+}
+
+.star-pick:hover {
+  color: #f59e0b !important;
+}
+
 /*--------------------------------------------------------------
 # Footer
 --------------------------------------------------------------*/
@@ -1332,54 +1401,76 @@ h6 {
 # Refund Page
 --------------------------------------------------------------*/
 .reason-btn {
-    font-size: 13px;
-    padding: 10px 12px;
-    border-color: #d4e8da;
-    color: #3e6f44;
-    transition: all .15s;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-color: #d4e8da;
+  color: #3e6f44;
+  transition: all .15s;
 }
+
 .reason-btn:hover {
-    background: #e6f4ea;
-    border-color: #005d21;
-    color: #005d21;
+  background: #e6f4ea;
+  border-color: #005d21;
+  color: #005d21;
 }
-.btn-check:checked + .reason-btn {
-    background: #005d21 !important;
-    border-color: #005d21 !important;
-    color: #fff !important;
+
+.btn-check:checked+.reason-btn {
+  background: #005d21 !important;
+  border-color: #005d21 !important;
+  color: #fff !important;
 }
 
 .rate-hero {
-    background: linear-gradient(135deg, #005d21 0%, #007a2b 60%, #00a83b 100%);
-    border-radius: 14px;
-    padding: 20px 24px;
-    color: #fff;
+  background: linear-gradient(135deg, #005d21 0%, #007a2b 60%, #00a83b 100%);
+  border-radius: 14px;
+  padding: 20px 24px;
+  color: #fff;
 }
+
 .rate-hero-icon {
-    width: 52px; height: 52px; border-radius: 50%;
-    background: rgba(255,255,255,.2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: #ffe066; flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #ffe066;
+  flex-shrink: 0;
 }
+
 .rate-hero-title {
-    font-size: 18px; font-weight: 700;
-    font-family: "Nunito", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: "Nunito", sans-serif;
 }
-.rate-hero-sub { font-size: 13px; opacity: .88; }
+
+.rate-hero-sub {
+  font-size: 13px;
+  opacity: .88;
+}
 
 /* Rate card */
-.rate-card { margin-bottom: 16px !important; }
-.rate-card.already-rated { opacity: .85; }
+.rate-card {
+  margin-bottom: 16px !important;
+}
+
+.rate-card.already-rated {
+  opacity: .85;
+}
 
 /* Product image in rate form */
 .rate-img {
-    width: 80px; height: 80px;
-    object-fit: cover;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
 }
+
 .rate-product-name {
-    font-family: "Nunito", sans-serif;
-    font-size: 15px;
-    color: #003d16;
+  font-family: "Nunito", sans-serif;
+  font-size: 15px;
+  color: #003d16;
 }
 
 /*--------------------------------------------------------------
@@ -1388,38 +1479,43 @@ h6 {
 
 /* ── Star Rating ── */
 .star-rating {
-    display: inline-flex;
-    flex-direction: row-reverse;
-    align-items: center;
-    gap: 2px;
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 2px;
 }
+
 .star-rating input[type="radio"] {
-    display: none;
+  display: none;
 }
+
 .star-rating label {
-    cursor: pointer;
-    font-size: 1.6rem;
-    color: #dee2e6;
-    transition: color .15s, transform .1s;
-    line-height: 1;
+  cursor: pointer;
+  font-size: 1.6rem;
+  color: #dee2e6;
+  transition: color .15s, transform .1s;
+  line-height: 1;
 }
+
 /* Highlight hovered star and all stars before it (flex-reverse trick) */
 .star-rating label:hover,
-.star-rating label:hover ~ label,
-.star-rating input:checked ~ label {
-    color: #f5c518;
+.star-rating label:hover~label,
+.star-rating input:checked~label {
+  color: #f5c518;
 }
+
 .star-rating label:hover {
-    transform: scale(1.15);
+  transform: scale(1.15);
 }
-.star-rating input:checked + label {
-    color: #f5c518;
+
+.star-rating input:checked+label {
+  color: #f5c518;
 }
 
 /* Hint text */
 .star-hint {
-    font-size: 12px;
-    color: #89ad94;
-    font-weight: 600;
-    min-width: 70px;
+  font-size: 12px;
+  color: #89ad94;
+  font-weight: 600;
+  min-width: 70px;
 }

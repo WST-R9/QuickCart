@@ -181,10 +181,7 @@ $isCancelled = in_array($payment['orderStatus'], ['cancelled', 'refunded']);
                     <h5 class="card-title">Customer</h5>
                     <p class="mb-1"><strong>Name:</strong> <?= htmlspecialchars($payment['customerName']) ?></p>
                     <p class="mb-1"><strong>Email:</strong> <?= htmlspecialchars($payment['emailAddress']) ?></p>
-                    <p class="mb-3"><strong>Phone:</strong> <?= htmlspecialchars($payment['phoneNumber']) ?></p>
-                    <a href="customersView.php?id=<?= $payment['userId'] ?>" class="btn btn-sm btn-primary">
-                        <i class="bi bi-person me-1"></i> View Customer
-                    </a>
+                    <p class="mb-1"><strong>Phone:</strong> <?= htmlspecialchars($payment['phoneNumber']) ?></p>
                 </div>
             </div>
 

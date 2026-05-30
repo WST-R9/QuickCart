@@ -282,7 +282,7 @@ include('includes/topbar.php');
                                         and
                                         our team will investigate.
                                     </p>
-                                    <a href="supportTicket?orderId=<?= $orderId ?>&issue=not_received"
+                                    <a href="ticketCreate?orderId=<?= $orderId ?>&issue=not_received"
                                         class="btn btn-warning btn-sm">
                                         <i class="bi bi-headset me-1"></i> File a Support Ticket
                                     </a>
