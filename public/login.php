@@ -9,6 +9,8 @@
   <title>Login – QuickCart</title>
 
   <!-- Bootstrap CSS -->
+  <link href="user/assets/img/qc-favicon.png" rel="icon">
+  <link href="user/assets/img/qc-touch-icon.png" rel="qc-touch-icon">
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 

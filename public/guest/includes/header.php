@@ -11,7 +11,7 @@
 
   <!-- Favicons -->
   <link href="../user/assets/img/qc-favicon.png" rel="icon">
-  <link href="../user/assets/img/qc-touch-icon.png" rel="apple-touch-icon">
+  <link href="../user/assets/img/qc-touch-icon.png" rel="qc-touch-icon">
 
   <!-- Google Fonts -->
   <link href="https://fonts.gstatic.com" rel="preconnect">
