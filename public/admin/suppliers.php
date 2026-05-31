@@ -119,7 +119,7 @@ $suppliersResult = mysqli_query($conn, $suppliersQuery);
                   <td><?= date("M d, Y", strtotime($row['createdAt'])) ?></td>
 
                   <td>
-                    <a href="suppliers-edit.php?id=<?= $row['supplierId'] ?>" class="btn btn-sm btn-primary">
+                    <a href="suppliersEdit.php?id=<?= $row['supplierId'] ?>" class="btn btn-sm btn-primary">
                       <i class="bi bi-pencil"></i>
                     </a>
 

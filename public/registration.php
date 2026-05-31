@@ -10,8 +10,6 @@
   <link href="user/assets/img/qc-touch-icon.png" rel="qc-touch-icon">
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Custom CSS -->
   <link href="assets/css/style.css" rel="stylesheet">
 </head>
 
@@ -47,6 +45,9 @@
               <!-- FORM -->
               <form id="registrationForm" action="/WST-QuickCart/app/controllers/loginController.php" method="POST"
                 enctype="multipart/form-data" autocomplete="off">
+
+                <!-- Hidden flag so PHP isset($_POST['registerButton']) is always true on registration submit -->
+                <input type="hidden" name="registerButton" value="1">
 
                 <!-- STEP 1: Personal Info -->
                 <div class="form-step form-step-active">
@@ -164,7 +165,7 @@
                   </div>
                   <div class="d-flex justify-content-between mt-2">
                     <button type="button" class="btn btn-secondary" id="prevBtn3">Previous</button>
-                    <button type="submit" name="registerButton" class="btn btn-quickcart">Create Account</button>
+                    <button type="button" id="submitBtn" class="btn btn-quickcart">Create Account</button>
                   </div>
                 </div>
 
@@ -186,7 +187,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // Toast — defined once, used everywhere (validation + PHP flash messages)
+    // Toast — defined once, used everywhere
     const Toast = Swal.mixin({
       toast: true,
       position: 'top-end',
@@ -250,32 +251,29 @@
       updateFormSteps();
     });
 
-    // Step 3 validation on submit
-    document.getElementById('registrationForm').addEventListener('submit', (e) => {
+    // Step 3 — manual submit via button click (NOT form submit event)
+    document.getElementById('submitBtn').addEventListener('click', () => {
       const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
+      const password = document.getElementById('password').value.trim();
+      const confirmPassword = document.getElementById('confirmPassword').value.trim();
       const terms = document.getElementById('acceptTerms').checked;
 
-      if (!username || !password) {
-        e.preventDefault();
-        return Toast.fire({ icon: 'warning', title: 'Please fill in all account fields.' });
-      }
-      if (password !== confirmPassword) {
-        e.preventDefault();
-        return Toast.fire({ icon: 'warning', title: 'Passwords do not match.' });
-      }
-      if (!terms) {
-        e.preventDefault();
-        return Toast.fire({ icon: 'warning', title: 'You must accept the terms and conditions.' });
-      }
+      if (!username) return Toast.fire({ icon: 'warning', title: 'Username is required.' });
+      if (!password) return Toast.fire({ icon: 'warning', title: 'Password is required.' });
+      if (password.length < 6) return Toast.fire({ icon: 'warning', title: 'Password must be at least 6 characters.' });
+      if (password !== confirmPassword) return Toast.fire({ icon: 'warning', title: 'Passwords do not match.' });
+      if (!terms) return Toast.fire({ icon: 'warning', title: 'You must accept the terms and conditions.' });
+
+      // All validations passed — submit the form
+      document.getElementById('registrationForm').submit();
     });
 
-    // Navigation
+    // Navigation — Previous buttons
     document.getElementById('prevBtn2').addEventListener('click', () => { currentStep = 0; updateFormSteps(); });
     document.getElementById('prevBtn3').addEventListener('click', () => { currentStep = 1; updateFormSteps(); });
 
-    <?php include_once(__DIR__ . '/../app/helpers/flashMessage.php');
+    <?php
+    include_once(__DIR__ . '/../app/helpers/flashMessage.php');
     flashMessage();
     ?>
 

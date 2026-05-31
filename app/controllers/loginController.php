@@ -103,10 +103,6 @@ if (isset($_POST['registerButton'])) {
     $province = trim(mysqli_real_escape_string($conn, $_POST['province']));
     $zipCode = trim(mysqli_real_escape_string($conn, $_POST['zipCode']));
 
-    // OPTIONAL address fields (not in your form yet)
-    $province = NULL;
-    $zipCode = NULL;
-
     $role = "customer";
     $uuid = generate_uuid();
 
